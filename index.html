@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CampFlow 營隊報名系統 v2.7.0 (最終完整版)</title>
+    <title>CampFlow 營隊報名系統 v2.7.5 (完美修復版)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -19,8 +19,6 @@
         .fade-enter-from, .fade-leave-to { opacity: 0; }
         .list-enter-active, .list-leave-active { transition: all 0.4s ease; }
         .list-enter-from, .list-leave-to { opacity: 0; transform: translateY(-10px); }
-        
-        /* 票券的防偽底紋效果 */
         .ticket-visual {
             background-image: radial-gradient(circle at 0 50%, transparent 10px, white 11px), 
                               radial-gradient(circle at 100% 50%, transparent 10px, white 11px);
@@ -34,9 +32,11 @@
 <body class="bg-gray-50 text-gray-800 pt-[40px]">
 
 <div id="app" class="min-h-screen flex flex-col">
-    <div class="fixed bottom-2 right-3 z-50 text-[10px] text-gray-300 font-mono select-none hover:text-gray-500 transition-colors duration-300 cursor-default">
-        System made by lunary
+
+    <div class="fixed bottom-2 right-3 z-50 text-[10px] text-gray-400 font-mono select-none hover:text-gray-600 transition-colors duration-300 cursor-default">
+        System by lunary 製作
     </div>
+
     <div :class="['fixed top-0 left-0 w-full h-[40px] text-white z-[60] flex items-center justify-center text-sm font-bold shadow-md transition-colors duration-500', isCheckinMode ? 'bg-indigo-600' : 'bg-gradient-to-r from-red-600 to-red-500']">
         <div v-if="isCheckinMode" class="flex items-center animate-fade-in">
             <i class="fa-solid fa-location-dot mr-2 animate-bounce"></i> 自助簽到模式
@@ -50,13 +50,11 @@
                     </span>
                     <span class="tracking-wide text-xs opacity-90">報名截止</span>
                 </div>
-                
                 <div class="flex items-center gap-1 font-mono text-base">
                     <template v-if="timer.days > 0">
                         <span class="bg-black/20 backdrop-blur px-1.5 rounded text-white min-w-[24px] text-center">{{ timer.days }}</span>
                         <span class="text-xs mr-1 opacity-80">天</span>
                     </template>
-
                     <span class="bg-black/20 backdrop-blur px-1.5 rounded text-white min-w-[28px] text-center">{{ pad(timer.hours) }}</span>
                     <span class="text-xs opacity-60">:</span>
                     <span class="bg-black/20 backdrop-blur px-1.5 rounded text-white min-w-[28px] text-center">{{ pad(timer.minutes) }}</span>
@@ -75,10 +73,9 @@
                 <img src="https://tjjh.tc.edu.tw/var/file/126/1126/msys_1126_7604592_06998.png" alt="校徽" class="h-12 w-auto mr-2 object-contain">
                 <div>
                     <h1 class="text-xl font-bold text-gray-800 tracking-wide">CampFlow</h1>
-                    <p class="text-xs text-gray-500">智慧營隊系統 <span class="bg-yellow-500 text-white px-1 rounded">v2.7 完整版</span></p>
+                    <p class="text-xs text-gray-500">智慧營隊系統 <span class="bg-yellow-500 text-white px-1 rounded">v2.7.5</span></p>
                 </div>
             </div>
-            
             <nav v-if="!isCheckinMode" class="flex gap-2">
                 <button @click="switchToStudent" :class="['px-4 py-2 rounded-lg text-sm font-medium transition', currentView === 'student' ? 'bg-green-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100']">
                     <i class="fa-solid fa-user-pen mr-1"></i> 報名
@@ -94,7 +91,6 @@
     </header>
 
     <main class="flex-grow max-w-6xl mx-auto px-4 py-6 w-full">
-        
         <div v-if="isGlobalLoading" class="text-center py-24">
             <i class="fa-solid fa-circle-notch fa-spin text-5xl text-green-500 mb-4"></i>
             <h2 class="text-xl font-bold text-gray-700">正在同步雲端資料...</h2>
@@ -102,7 +98,6 @@
         </div>
 
         <transition name="fade" mode="out-in">
-            
             <div v-if="!isGlobalLoading && isCheckinMode" key="checkin" class="max-w-md mx-auto mt-10">
                 <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-indigo-100">
                     <div class="bg-indigo-600 p-6 text-white text-center">
@@ -115,18 +110,15 @@
                             <i :class="['fa-solid text-3xl mb-2', checkinResult.success ? 'fa-circle-check' : 'fa-circle-xmark']"></i>
                             <p class="font-bold">{{ checkinResult.message }}</p>
                         </div>
-
                         <form v-else @submit.prevent="submitSelfCheckin">
                             <label class="block text-sm font-bold text-gray-700 mb-2">請輸入您的聯絡電話</label>
                             <input v-model="checkinPhone" type="tel" placeholder="09xxxxxxxx" class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-indigo-500 focus:ring-0 outline-none text-lg text-center tracking-widest" maxlength="10" required>
                             <p class="text-xs text-gray-400 mt-2 text-center">輸入報名時填寫的電話號碼</p>
-                            
                             <button type="submit" :disabled="isSubmitting" class="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95 disabled:bg-gray-300">
                                 <span v-if="isSubmitting"><i class="fa-solid fa-circle-notch fa-spin"></i> 簽到中...</span>
                                 <span v-else>確認簽到</span>
                             </button>
                         </form>
-                        
                         <div v-if="checkinResult" class="text-center">
                             <button @click="resetCheckin" class="text-indigo-600 underline text-sm hover:text-indigo-800">幫下一位簽到</button>
                         </div>
@@ -135,61 +127,28 @@
             </div>
 
             <div v-else-if="!isGlobalLoading && currentView === 'student'" key="student" class="space-y-8">
-                
                 <section class="grid md:grid-cols-3 gap-6">
                     <div v-for="(camp, idx) in camps" :key="camp.id" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition group flex flex-col">
                         <div class="h-32 bg-gray-200 relative overflow-hidden shrink-0">
-                            <div :class="['absolute inset-0 flex items-center justify-center text-4xl text-white opacity-80', getAutoColor(idx)]">
-                                <i :class="['fa-solid', getAutoIcon(idx)]"></i>
-                            </div>
-                            <div class="absolute top-2 left-2 bg-black/60 backdrop-blur px-2 py-1 rounded text-xs text-white font-mono shadow">
-                                <i class="fa-solid fa-tag mr-1 text-yellow-400"></i>NT$ {{ camp.price ? camp.price.toLocaleString() : '免費' }}
-                            </div>
-                            <div class="absolute top-2 right-2 bg-white/95 backdrop-blur px-2 py-1 rounded text-xs shadow">
-                                <span :class="camp.slots <= 0 ? 'text-gray-500 font-bold' : (camp.slots < 5 ? 'text-red-500 animate-pulse font-bold' : 'text-green-600 font-bold')">
-                                    {{ camp.slots <= 0 ? '已額滿 (可排候補)' : '剩餘 ' + camp.slots + ' 名額' }}
-                                </span>
-                            </div>
+                            <div :class="['absolute inset-0 flex items-center justify-center text-4xl text-white opacity-80', getAutoColor(idx)]"><i :class="['fa-solid', getAutoIcon(idx)]"></i></div>
+                            <div class="absolute top-2 left-2 bg-black/60 backdrop-blur px-2 py-1 rounded text-xs text-white font-mono shadow"><i class="fa-solid fa-tag mr-1 text-yellow-400"></i>NT$ {{ camp.price ? camp.price.toLocaleString() : '免費' }}</div>
+                            <div class="absolute top-2 right-2 bg-white/95 backdrop-blur px-2 py-1 rounded text-xs shadow"><span :class="camp.slots <= 0 ? 'text-gray-500 font-bold' : (camp.slots < 5 ? 'text-red-500 animate-pulse font-bold' : 'text-green-600 font-bold')">{{ camp.slots <= 0 ? '已額滿 (可排候補)' : '剩餘 ' + camp.slots + ' 名額' }}</span></div>
                         </div>
-                        
                         <div class="p-5 flex flex-col flex-grow">
                             <h3 class="font-bold text-lg mb-1">{{ camp.name }}</h3>
                             <p class="text-gray-500 text-sm mb-4 line-clamp-2 h-10">{{ camp.desc }}</p>
-                            
                             <div class="mt-auto pt-3 border-t border-gray-100">
-                                <div class="flex justify-between items-center mb-1">
-                                    <span class="text-xs font-bold text-gray-500">開班進度</span>
-                                    <span v-if="camp.isConfirmed" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">
-                                        <i class="fa-solid fa-fire mr-1"></i>確定開班
-                                    </span>
-                                    <span v-else class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                                        尚需 {{ Math.max(0, camp.minSlots - camp.used) }} 人
-                                    </span>
-                                </div>
-                                <div class="w-full bg-gray-200 rounded-full h-1.5">
-                                    <div :class="['h-1.5 rounded-full transition-all duration-1000', camp.isConfirmed ? 'bg-green-500' : 'bg-gray-400']" 
-                                         :style="{ width: Math.min(100, (camp.used / camp.minSlots) * 100) + '%' }"></div>
-                                </div>
-                                <div class="flex justify-between items-center text-xs text-gray-400 mt-2">
-                                    <span><i class="fa-regular fa-calendar mr-1"></i>{{ camp.date }}</span>
-                                    <span>總額: {{ camp.totalSlots }}</span>
-                                </div>
+                                <div class="flex justify-between items-center mb-1"><span class="text-xs font-bold text-gray-500">開班進度</span><span v-if="camp.isConfirmed" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold"><i class="fa-solid fa-fire mr-1"></i>確定開班</span><span v-else class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">尚需 {{ Math.max(0, camp.minSlots - camp.used) }} 人</span></div>
+                                <div class="w-full bg-gray-200 rounded-full h-1.5"><div :class="['h-1.5 rounded-full transition-all duration-1000', camp.isConfirmed ? 'bg-green-500' : 'bg-gray-400']" :style="{ width: Math.min(100, (camp.used / camp.minSlots) * 100) + '%' }"></div></div>
+                                <div class="flex justify-between items-center text-xs text-gray-400 mt-2"><span><i class="fa-regular fa-calendar mr-1"></i>{{ camp.date }}</span><span>總額: {{ camp.totalSlots }}</span></div>
                             </div>
                         </div>
                     </div>
                 </section>
 
                 <section v-if="camps.length > 0" class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden max-w-3xl mx-auto relative">
-                    <div v-if="isExpired" class="absolute inset-0 bg-gray-100/80 z-10 flex flex-col items-center justify-center text-gray-500">
-                        <i class="fa-solid fa-calendar-xmark text-6xl mb-4"></i>
-                        <h2 class="text-2xl font-bold">抱歉，報名已截止</h2>
-                    </div>
-
-                    <div class="bg-green-50 p-4 border-b border-green-100 flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center text-green-700"><i class="fa-solid fa-pencil"></i></div>
-                        <h2 class="font-bold text-green-800">填寫報名志願序</h2>
-                    </div>
-
+                    <div v-if="isExpired" class="absolute inset-0 bg-gray-100/80 z-10 flex flex-col items-center justify-center text-gray-500"><i class="fa-solid fa-calendar-xmark text-6xl mb-4"></i><h2 class="text-2xl font-bold">抱歉，報名已截止</h2></div>
+                    <div class="bg-green-50 p-4 border-b border-green-100 flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center text-green-700"><i class="fa-solid fa-pencil"></i></div><h2 class="font-bold text-green-800">填寫報名志願序</h2></div>
                     <form @submit.prevent="submitRegistration" class="p-6 space-y-6">
                         <div class="grid md:grid-cols-2 gap-6">
                             <div><label class="block text-sm font-medium text-gray-700 mb-1">學生姓名 *</label><input v-model="form.studentName" type="text" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 outline-none"></div>
@@ -198,7 +157,6 @@
                             <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">聯絡電話 *</label><input v-model="form.phone" type="tel" maxlength="10" @input="validatePhone" :class="['w-full px-4 py-2 rounded-lg border outline-none', phoneError ? 'input-error' : 'border-gray-300 focus:ring-green-500']"><p v-if="phoneError" class="text-red-500 text-xs mt-1">{{ phoneError }}</p></div>
                         </div>
                         <hr class="border-gray-100">
-                        
                         <div class="space-y-4">
                             <transition-group name="list" tag="div" class="space-y-3">
                                 <div v-for="(choice, idx) in form.choices" :key="idx" class="flex items-center gap-3">
@@ -206,7 +164,6 @@
                                     <div class="flex-grow flex gap-2">
                                         <select v-model="form.choices[idx]" required class="flex-grow px-4 py-2 rounded-lg border border-gray-300 outline-none bg-white focus:ring-2 focus:ring-green-500">
                                             <option value="" disabled>請選擇第 {{ idx+1 }} 志願</option>
-                                            
                                             <option v-for="camp in camps" :key="camp.id" :value="camp.name" :disabled="isSelected(camp.name, idx)">
                                                 {{ camp.name }} (NT$ {{ camp.price }}) {{ camp.slots <= 0 ? '- 額滿排候補' : '' }}
                                             </option>
@@ -217,7 +174,7 @@
                             </transition-group>
                             <button v-if="form.choices.length < camps.length" @click="addChoice" type="button" class="text-sm text-green-600 font-bold hover:text-green-800 flex items-center gap-1 mt-2"><i class="fa-solid fa-circle-plus"></i> 新增下一個志願</button>
                         </div>
-
+                        
                         <div v-if="hasWaitlistChoice" class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
                             <div class="flex">
                                 <div class="flex-shrink-0"><i class="fa-solid fa-circle-exclamation text-yellow-400"></i></div>
@@ -234,7 +191,6 @@
             </div>
 
             <div v-else-if="!isGlobalLoading && currentView === 'admin'" key="admin" class="space-y-8">
-                
                 <div v-if="showScanner" class="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center text-white">
                     <h3 class="text-xl font-bold mb-4"><i class="fa-solid fa-qrcode mr-2"></i>QR Code 簽到</h3>
                     <div id="reader" style="width: 300px; height: 300px; background: #000; border-radius: 12px; overflow: hidden;"></div>
@@ -253,7 +209,6 @@
                 </div>
 
                 <div v-if="isAdminLoading" class="text-center py-20"><i class="fa-solid fa-circle-notch fa-spin text-4xl text-green-600"></i><p class="mt-2 text-gray-500">讀取資料中...</p></div>
-                
                 <div v-else class="space-y-6">
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                         <div class="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
@@ -262,7 +217,6 @@
                                 <i class="fa-solid fa-camera"></i> 管理員掃碼簽到
                             </button>
                         </div>
-                        
                         <div class="grid md:grid-cols-2 gap-6">
                             <div v-for="camp in camps" :key="camp.id" class="space-y-2 border p-4 rounded-lg bg-gray-50/50">
                                 <div class="flex justify-between items-center">
@@ -284,7 +238,6 @@
                             </div>
                         </div>
                     </div>
-
                     <div class="bg-white rounded-xl shadow border border-gray-100 overflow-hidden">
                         <div class="p-4 border-b border-gray-100 bg-gray-50 flex flex-col md:flex-row md:justify-between md:items-center gap-3">
                             <div class="flex items-center gap-2"><h3 class="font-bold text-gray-800"><i class="fa-solid fa-users text-green-600 mr-1"></i> 報名資料庫</h3><span class="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{{ students.length }} 筆</span></div>
@@ -323,13 +276,11 @@
                                 <div class="flex justify-between border-b pb-1"><span class="text-gray-500">學生</span><span class="font-bold">{{ lastSubmittedStudent?.studentName }}</span></div>
                                 <div class="flex justify-between border-b pb-1"><span class="text-gray-500">第一志願</span><span class="font-bold text-green-600">{{ getCampName(lastSubmittedStudent?.choices[0]) }}</span></div>
                             </div>
-                            <div class="text-center mt-4">
-                                <img :src="'https://quickchart.io/qr?text=' + lastSubmittedStudent?.phone + '&size=150'" class="mx-auto border p-1 rounded" alt="QR Code">
-                                <p class="text-[10px] text-gray-400 mt-1">ID: {{ lastSubmittedStudent?.phone }}</p>
-                            </div>
+                            <div class="text-center mt-4"><img :src="'https://quickchart.io/qr?text=' + lastSubmittedStudent?.phone + '&size=150'" class="mx-auto border p-1 rounded" alt="QR Code"><p class="text-[10px] text-gray-400 mt-1">ID: {{ lastSubmittedStudent?.phone }}</p></div>
                         </div>
+                        
                         <div class="text-center mb-4 text-sm bg-gray-100 p-2 rounded">
-                            請準備繳交費用：<span class="font-bold text-red-600">NT$ {{ camps.find(c=>c.id===lastSubmittedStudent?.choices[0])?.price }}</span>
+                            請準備繳交費用：<span class="font-bold text-red-600">NT$ {{ camps.find(c=>c.name===lastSubmittedStudent?.choices[0])?.price }}</span>
                         </div>
 
                         <button @click="generatePDF" class="w-full bg-gray-900 text-white font-bold py-3 rounded-lg mb-2"><i class="fa-solid fa-file-pdf mr-2"></i>下載票券 (含 QR Code)</button>
@@ -349,13 +300,12 @@
     // ★★★ CONFIGURATION 設定區 ★★★
     // ==========================================
     const CONFIG = {
-        // 請確認您的 GAS 網址是否正確
-        scriptUrl: 'https://script.google.com/macros/s/AKfycbxwOpyYxExvKiCiOsOSFmyNDH_aDgLgqQ_B8zbhfogu4S5osm_QovqvpDFNnPWY8NQ_/exec', 
+        // ★★★ 請確認您的 GAS 網址是否正確 ★★★
+        scriptUrl: 'https://script.google.com/macros/s/AKfycbxwOpyYxExvKiCiOsOSFmyNDH_aDgLgqQ_B8zbhfogu4S5osm_QovqvpDFNnPWY8NQ_/exec',
     };
 
     createApp({
         setup() {
-            // --- State Variables ---
             const currentView = ref('student');
             const isGlobalLoading = ref(true); 
             const showSuccessModal = ref(false);
@@ -371,7 +321,7 @@
             const targetCampName = ref('');
             const checkinPhone = ref('');
             const checkinResult = ref(null);
-            const searchQuery = ref(''); // ✅ 已修復：搜尋變數存在
+            const searchQuery = ref(''); 
             
             // Data
             const camps = ref([]);
@@ -383,7 +333,6 @@
             const isExpired = ref(false);
             let timerInterval = null;
 
-            // ✅ 已新增：補零函式
             const pad = (n) => String(n).padStart(2, '0');
 
             // --- Lifecycle & Init ---
@@ -506,9 +455,13 @@
             const addChoice = () => { if(form.choices.length < camps.value.length) form.choices.push(''); };
             const removeChoice = (idx) => form.choices.splice(idx, 1);
             const isSelected = (id, idx) => form.choices.some((c, i) => i !== idx && c === id);
+            
+            // ★ 這兩個工具函式非常重要，必須被 return 出去
             const getCampName = (id) => { const c = camps.value.find(x => x.id === id); return c ? c.name : id; };
             const formatGASDate = (d) => { try { return new Date(d).toLocaleString(); } catch(e) { return d; } };
-            const hasWaitlistChoice = computed(() => form.choices.some(id => { const c = camps.value.find(x=>x.id===id); return c && c.slots<=0; }));
+            
+            // 修正：因為現在下拉選單傳送的是 Name，所以這裡要改用 Name 查找
+            const hasWaitlistChoice = computed(() => form.choices.some(name => { const c = camps.value.find(x=>x.name===name); return c && c.slots<=0; }));
             const filteredStudents = computed(() => students.value.filter(s => s.name.includes(searchQuery.value) || s.email.includes(searchQuery.value) || String(s.phone).includes(searchQuery.value)));
             
             const generatePDF = () => {
@@ -528,11 +481,12 @@
             return {
                 CONFIG, currentView, isGlobalLoading, camps, form, students, showSuccessModal, isSubmitting, isAdminLoading, phoneError,
                 timer, isExpired, isFormValid, getAutoColor, getAutoIcon, filteredStudents, searchQuery, deadlineDate, hasWaitlistChoice, showScanner, showCampQR, selectedCampForQR,
-                isCheckinMode, targetCampName, checkinPhone, checkinResult,
-                // ★ 關鍵修正：這裡原本少了 pad，一定要加進來！
-                pad,
+                isCheckinMode, targetCampName, checkinPhone, checkinResult, pad,
                 addChoice, removeChoice, isSelected, submitRegistration, checkAdminAccess, switchToStudent: ()=>currentView.value='student',
-                exportCSV, generatePDF, lastSubmittedStudent, startScanner, closeScanner, openCampQR, generateVenueQR, submitSelfCheckin, resetCheckin
+                exportCSV, generatePDF, lastSubmittedStudent, startScanner, closeScanner, openCampQR, generateVenueQR, submitSelfCheckin, resetCheckin,
+                
+                // ★★★ 關鍵修復：這裡必須把 getCampName 等函式傳出去，HTML 才能使用 ★★★
+                getCampName, formatGASDate, validatePhone
             };
         }
     }).mount('#app');
