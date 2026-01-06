@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CampFlow 營隊報名系統 v2.1.0 (後台重構版)</title>
+    <title>CampFlow 營隊報名系統 v2.3.0 (智慧候補版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -30,14 +30,15 @@
 <div id="app" class="min-h-screen flex flex-col">
 
     <div class="fixed top-0 left-0 w-full h-[40px] bg-red-600 text-white z-[60] flex items-center justify-center text-sm font-bold shadow-md">
-        <div v-if="!isExpired" class="flex items-center gap-2">
+        <div v-if="!isExpired && deadlineDate" class="flex items-center gap-2">
             <span class="animate-pulse"><i class="fa-solid fa-clock"></i> 距離報名截止還有：</span>
             <span class="font-mono text-lg bg-red-700 px-2 rounded">{{ timer.days }}</span> 天
             <span class="font-mono text-lg bg-red-700 px-2 rounded">{{ timer.hours }}</span> 時
             <span class="font-mono text-lg bg-red-700 px-2 rounded">{{ timer.minutes }}</span> 分
             <span class="font-mono text-lg bg-red-700 px-2 rounded">{{ timer.seconds }}</span> 秒
         </div>
-        <div v-else class="flex items-center gap-2"><i class="fa-solid fa-lock"></i> 報名已截止</div>
+        <div v-else-if="isExpired" class="flex items-center gap-2"><i class="fa-solid fa-lock"></i> 報名已截止</div>
+        <div v-else class="flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> 載入時間中...</div>
     </div>
 
     <header class="bg-white shadow-sm border-b border-gray-200 sticky top-[40px] z-50 transition-all">
@@ -46,7 +47,7 @@
                 <img src="https://tjjh.tc.edu.tw/var/file/126/1126/msys_1126_7604592_06998.png" alt="校徽" class="h-12 w-auto mr-2 object-contain">
                 <div>
                     <h1 class="text-xl font-bold text-gray-800 tracking-wide">CampFlow</h1>
-                    <p class="text-xs text-gray-500">智慧營隊志願序報名系統 <span class="bg-indigo-500 text-white px-1 rounded">v2.1 後台強化</span></p>
+                    <p class="text-xs text-gray-500">智慧營隊志願序報名系統 <span class="bg-purple-600 text-white px-1 rounded">v2.3 候補版</span></p>
                 </div>
             </div>
             <nav class="flex gap-2">
@@ -62,7 +63,7 @@
         
         <div v-if="isGlobalLoading" class="text-center py-24">
             <i class="fa-solid fa-circle-notch fa-spin text-5xl text-green-500 mb-4"></i>
-            <h2 class="text-xl font-bold text-gray-700">正在同步雲端資料...</h2>
+            <h2 class="text-xl font-bold text-gray-700">正在同步雲端設定...</h2>
             <p class="text-gray-400 text-sm mt-2">Connecting to Google Sheets</p>
         </div>
 
@@ -74,8 +75,10 @@
                             <div :class="['absolute inset-0 flex items-center justify-center text-4xl text-white opacity-80', getAutoColor(idx)]">
                                 <i :class="['fa-solid', getAutoIcon(idx)]"></i>
                             </div>
-                            <div class="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded text-xs font-bold shadow">
-                                <span :class="camp.slots < 5 ? 'text-red-500 animate-pulse' : 'text-green-600'">剩餘 {{ camp.slots }} 名額</span>
+                            <div class="absolute top-2 right-2 bg-white/95 backdrop-blur px-2 py-1 rounded text-xs shadow">
+                                <span :class="camp.slots <= 0 ? 'text-gray-500 font-bold' : (camp.slots < 5 ? 'text-red-500 animate-pulse font-bold' : 'text-green-600 font-bold')">
+                                    {{ camp.slots <= 0 ? '已額滿 (可排候補)' : '剩餘 ' + camp.slots + ' 名額' }}
+                                </span>
                             </div>
                         </div>
                         <div class="p-5">
@@ -109,7 +112,9 @@
                                     <div class="flex-grow flex gap-2">
                                         <select v-model="form.choices[idx]" required class="flex-grow px-4 py-2 rounded-lg border border-gray-300 outline-none bg-white focus:ring-2 focus:ring-green-500">
                                             <option value="" disabled>請選擇第 {{ idx+1 }} 志願</option>
-                                            <option v-for="camp in camps" :key="camp.id" :value="camp.id" :disabled="isSelected(camp.id, idx)">{{ camp.name }}</option>
+                                            <option v-for="camp in camps" :key="camp.id" :value="camp.id" :disabled="isSelected(camp.id, idx)">
+                                                {{ camp.name }} {{ camp.slots <= 0 ? '(額滿排候補)' : '' }}
+                                            </option>
                                         </select>
                                         <button v-if="form.choices.length > 1" @click="removeChoice(idx)" type="button" class="text-red-400 hover:text-red-600 px-2"><i class="fa-solid fa-trash-can"></i></button>
                                     </div>
@@ -117,6 +122,19 @@
                             </transition-group>
                             <button v-if="form.choices.length < camps.length" @click="addChoice" type="button" class="text-sm text-green-600 font-bold hover:text-green-800 flex items-center gap-1 mt-2"><i class="fa-solid fa-circle-plus"></i> 新增下一個志願</button>
                         </div>
+
+                        <div v-if="hasWaitlistChoice" class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0"><i class="fa-solid fa-circle-exclamation text-yellow-400"></i></div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-yellow-700">
+                                        您選擇的志願中包含 <strong>已額滿</strong> 的營隊。
+                                        <br>送出後，系統將自動將您列入該營隊的 <strong>候補名單</strong>。
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
                         <button type="submit" :disabled="!isFormValid || isExpired || isSubmitting" :class="['w-full font-bold py-3 rounded-xl shadow-lg transition transform', (!isFormValid || isExpired || isSubmitting) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white active:scale-95']">
                             <span v-if="isSubmitting"><i class="fa-solid fa-circle-notch fa-spin"></i> 處理中...</span>
                             <span v-else>提交報名表</span>
@@ -126,76 +144,35 @@
             </div>
 
             <div v-else-if="!isGlobalLoading && currentView === 'admin'" key="admin" class="space-y-8">
-                
-                <div v-if="isAdminLoading" class="text-center py-20"><i class="fa-solid fa-circle-notch fa-spin text-4xl text-green-600"></i><p class="mt-2 text-gray-500">正在讀取報名資料...</p></div>
-                
+                <div v-if="isAdminLoading" class="text-center py-20"><i class="fa-solid fa-circle-notch fa-spin text-4xl text-green-600"></i><p class="mt-2 text-gray-500">正在驗證身分並讀取資料...</p></div>
                 <div v-else class="space-y-6">
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                         <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-chart-simple text-blue-500"></i> 各營隊招生進度</h3>
                         <div class="grid md:grid-cols-2 gap-6">
                             <div v-for="camp in camps" :key="camp.id" class="space-y-1">
-                                <div class="flex justify-between text-sm">
-                                    <span class="font-medium text-gray-700">{{ camp.name }}</span>
-                                    <span class="text-gray-500 text-xs">已報 {{ camp.used || 0 }} / 總 {{ camp.totalSlots }}</span>
-                                </div>
-                                <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                                    <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-1000" 
-                                         :style="{ width: ((camp.used || 0) / camp.totalSlots * 100) + '%' }"></div>
-                                </div>
+                                <div class="flex justify-between text-sm"><span class="font-medium text-gray-700">{{ camp.name }}</span><span class="text-gray-500 text-xs">已報 {{ camp.used || 0 }} / 總 {{ camp.totalSlots }}</span></div>
+                                <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden"><div class="bg-blue-600 h-2.5 rounded-full transition-all duration-1000" :style="{ width: ((camp.used || 0) / camp.totalSlots * 100) + '%' }"></div></div>
                             </div>
                         </div>
                     </div>
-
                     <div class="bg-white rounded-xl shadow border border-gray-100 overflow-hidden">
                         <div class="p-4 border-b border-gray-100 bg-gray-50 flex flex-col md:flex-row md:justify-between md:items-center gap-3">
-                            <div class="flex items-center gap-2">
-                                <h3 class="font-bold text-gray-800"><i class="fa-solid fa-users text-green-600 mr-1"></i> 學生報名清單</h3>
-                                <span class="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{{ students.length }} 人</span>
-                            </div>
+                            <div class="flex items-center gap-2"><h3 class="font-bold text-gray-800"><i class="fa-solid fa-users text-green-600 mr-1"></i> 學生報名清單</h3><span class="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{{ students.length }} 人</span></div>
                             <div class="flex gap-2">
                                 <input v-model="searchQuery" type="text" placeholder="搜尋學生..." class="px-3 py-1.5 text-sm border rounded-lg outline-none focus:border-green-500">
-                                <button @click="exportCSV" class="bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 px-3 py-1.5 rounded-lg text-sm font-bold transition flex items-center gap-1">
-                                    <i class="fa-solid fa-file-csv"></i> 匯出 CSV
-                                </button>
+                                <button @click="exportCSV" class="bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 px-3 py-1.5 rounded-lg text-sm font-bold transition flex items-center gap-1"><i class="fa-solid fa-file-csv"></i> 匯出 CSV</button>
                             </div>
                         </div>
-                        
                         <div class="overflow-x-auto">
                             <table class="w-full text-sm text-left text-gray-500">
-                                <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
-                                    <tr>
-                                        <th class="px-6 py-3 w-1/4">學生姓名</th>
-                                        <th class="px-6 py-3 w-1/4">家長 / 電話</th>
-                                        <th class="px-6 py-3">志願序 (優先 -> 候補)</th>
-                                        <th class="px-6 py-3 w-1/6">報名時間</th>
-                                    </tr>
-                                </thead>
+                                <thead class="bg-gray-100 text-gray-700 uppercase text-xs"><tr><th class="px-6 py-3 w-1/4">學生姓名</th><th class="px-6 py-3 w-1/4">家長 / 電話</th><th class="px-6 py-3">志願序 (優先 -> 候補)</th><th class="px-6 py-3 w-1/6">報名時間</th></tr></thead>
                                 <tbody>
-                                    <tr v-if="filteredStudents.length === 0">
-                                        <td colspan="4" class="px-6 py-10 text-center text-gray-400">
-                                            <i class="fa-regular fa-folder-open text-2xl mb-2"></i><br>尚無符合的資料
-                                        </td>
-                                    </tr>
+                                    <tr v-if="filteredStudents.length === 0"><td colspan="4" class="px-6 py-10 text-center text-gray-400"><i class="fa-regular fa-folder-open text-2xl mb-2"></i><br>尚無符合的資料</td></tr>
                                     <tr v-for="(s, i) in filteredStudents" :key="i" class="border-b bg-white hover:bg-gray-50 transition">
-                                        <td class="px-6 py-4">
-                                            <div class="font-bold text-gray-900 text-base">{{ s.name }}</div>
-                                            <div class="text-xs text-gray-400">#{{ filteredStudents.length - i }}</div>
-                                        </td>
-                                        <td class="px-6 py-4">
-                                            <div class="text-gray-900"><i class="fa-solid fa-user-tag text-gray-400 mr-1"></i>{{ s.parent }}</div>
-                                            <div class="text-blue-600 font-mono mt-1"><i class="fa-solid fa-phone text-gray-400 mr-1"></i>{{ s.phone }}</div>
-                                        </td>
-                                        <td class="px-6 py-4">
-                                            <div class="flex flex-wrap gap-2">
-                                                <span v-for="(c, idx) in s.choices" :key="idx" 
-                                                    :class="['px-2 py-1 rounded text-xs border', idx===0?'bg-green-50 border-green-200 text-green-700 font-bold':'bg-gray-50 border-gray-200 text-gray-600']">
-                                                    {{ idx+1 }}. {{ getCampName(c) }}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4 text-xs text-gray-500 font-mono">
-                                            {{ formatGASDate(s.timestamp) }}
-                                        </td>
+                                        <td class="px-6 py-4"><div class="font-bold text-gray-900 text-base">{{ s.name }}</div><div class="text-xs text-gray-400">#{{ filteredStudents.length - i }}</div></td>
+                                        <td class="px-6 py-4"><div class="text-gray-900"><i class="fa-solid fa-user-tag text-gray-400 mr-1"></i>{{ s.parent }}</div><div class="text-blue-600 font-mono mt-1"><i class="fa-solid fa-phone text-gray-400 mr-1"></i>{{ s.phone }}</div></td>
+                                        <td class="px-6 py-4"><div class="flex flex-wrap gap-2"><span v-for="(c, idx) in s.choices" :key="idx" :class="['px-2 py-1 rounded text-xs border', idx===0?'bg-green-50 border-green-200 text-green-700 font-bold':'bg-gray-50 border-gray-200 text-gray-600']">{{ idx+1 }}. {{ getCampName(c) }}</span></div></td>
+                                        <td class="px-6 py-4 text-xs text-gray-500 font-mono">{{ formatGASDate(s.timestamp) }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -226,8 +203,7 @@
 
     // ★★★ 設定區 ★★★
     const CONFIG = {
-        scriptUrl: 'https://script.google.com/macros/s/AKfycbxwOpyYxExvKiCiOsOSFmyNDH_aDgLgqQ_B8zbhfogu4S5osm_QovqvpDFNnPWY8NQ_/exec', // ★請務必確認網址
-        deadlineDate: '2026-02-01 23:59:59'
+        scriptUrl: 'https://script.google.com/macros/s/AKfycbxwOpyYxExvKiCiOsOSFmyNDH_aDgLgqQ_B8zbhfogu4S5osm_QovqvpDFNnPWY8NQ_/exec' // ★請務必確認網址
     };
 
     createApp({
@@ -243,11 +219,14 @@
             const students = ref([]);
             const form = reactive({ studentName: '', parentName: '', phone: '', choices: [''] });
 
+            const deadlineDate = ref(null);
             const timer = reactive({ days: 0, hours: 0, minutes: 0, seconds: 0 });
             const isExpired = ref(false);
             let timerInterval = null;
+
             const updateTimer = () => {
-                const distance = new Date(CONFIG.deadlineDate).getTime() - new Date().getTime();
+                if(!deadlineDate.value) return;
+                const distance = new Date(deadlineDate.value).getTime() - new Date().getTime();
                 if (distance < 0) isExpired.value = true;
                 else { timer.days = Math.floor(distance / 86400000); timer.hours = Math.floor((distance % 86400000) / 3600000); timer.minutes = Math.floor((distance % 3600000) / 60000); timer.seconds = Math.floor((distance % 60000) / 1000); }
             };
@@ -259,8 +238,11 @@
                 .then(data => {
                     if(data.result === 'success') {
                         camps.value = data.camps;
+                        deadlineDate.value = data.deadline;
+                        updateTimer();
+                        timerInterval = setInterval(updateTimer, 1000);
                     } else {
-                        alert('無法讀取營隊資料');
+                        alert('無法讀取設定，請確認 Google Sheet 的 Config 分頁');
                     }
                 })
                 .catch(e => { console.error(e); })
@@ -275,6 +257,15 @@
             const validatePhone = () => { const r = /^09\d{8}$/; phoneError.value = (form.phone && !r.test(form.phone)) ? '格式錯誤' : ''; };
             watch(() => form.phone, validatePhone);
             const isFormValid = computed(() => form.studentName && form.parentName && form.phone && !phoneError.value && form.choices[0]);
+            
+            // [v2.3] 檢查是否選了候補
+            const hasWaitlistChoice = computed(() => {
+                return form.choices.some(choiceId => {
+                    const camp = camps.value.find(c => c.id === choiceId);
+                    return camp && camp.slots <= 0;
+                });
+            });
+
             const addChoice = () => { if(form.choices.length < camps.value.length) form.choices.push(''); };
             const removeChoice = (idx) => form.choices.splice(idx, 1);
             const isSelected = (id, idx) => form.choices.some((c, i) => i !== idx && c === id);
@@ -291,7 +282,7 @@
 
             const checkAdminAccess = () => {
                 if(currentView.value === 'admin') { currentView.value = 'student'; students.value = []; return; }
-                const pwd = prompt("密碼：");
+                const pwd = prompt("請輸入管理員密碼：");
                 if(pwd) {
                     isAdminLoading.value = true; currentView.value = 'admin';
                     fetch(CONFIG.scriptUrl, { method: 'POST', body: JSON.stringify({ action: 'login', password: pwd }) })
@@ -314,14 +305,14 @@
                 const a = document.createElement("a"); a.href = encodeURI("data:text/csv;charset=utf-8," + csv); a.download = "camp_students.csv"; a.click();
             };
 
-            onMounted(() => { updateTimer(); timerInterval = setInterval(updateTimer, 1000); fetchCamps(); });
+            onMounted(() => { fetchCamps(); });
             onUnmounted(() => clearInterval(timerInterval));
 
             return {
                 currentView, isGlobalLoading, camps, form, students, showSuccessModal, isSubmitting, isAdminLoading, phoneError,
-                timer, isExpired, isFormValid, getAutoColor, getAutoIcon, filteredStudents, searchQuery,
+                timer, isExpired, isFormValid, getAutoColor, getAutoIcon, filteredStudents, searchQuery, deadlineDate,
                 addChoice, removeChoice, isSelected, submitRegistration, checkAdminAccess, switchToStudent: ()=>currentView.value='student',
-                getCampName, exportCSV, formatGASDate
+                getCampName, exportCSV, formatGASDate, hasWaitlistChoice
             };
         }
     }).mount('#app');
