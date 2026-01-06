@@ -3,16 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CampFlow 營隊報名系統 v2.0.0 (雲端動態版)</title>
+    <title>CampFlow 營隊報名系統 v2.0.1 (樣式修復版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: { extend: { colors: { brand: { 50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 600: '#16a34a', 800: '#166534' } }, animation: { 'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' } } }
-    </script>
     <style>
         body { font-family: 'Segoe UI', Microsoft JhengHei, sans-serif; }
         .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
@@ -35,7 +31,7 @@
 
     <div class="fixed top-0 left-0 w-full h-[40px] bg-red-600 text-white z-[60] flex items-center justify-center text-sm font-bold shadow-md">
         <div v-if="!isExpired" class="flex items-center gap-2">
-            <span class="animate-pulse-fast"><i class="fa-solid fa-clock"></i> 距離報名截止還有：</span>
+            <span class="animate-pulse"><i class="fa-solid fa-clock"></i> 距離報名截止還有：</span>
             <span class="font-mono text-lg bg-red-700 px-2 rounded">{{ timer.days }}</span> 天
             <span class="font-mono text-lg bg-red-700 px-2 rounded">{{ timer.hours }}</span> 時
             <span class="font-mono text-lg bg-red-700 px-2 rounded">{{ timer.minutes }}</span> 分
@@ -50,11 +46,11 @@
                 <img src="https://tjjh.tc.edu.tw/var/file/126/1126/msys_1126_7604592_06998.png" alt="校徽" class="h-12 w-auto mr-2 object-contain">
                 <div>
                     <h1 class="text-xl font-bold text-gray-800 tracking-wide">CampFlow</h1>
-                    <p class="text-xs text-gray-500">智慧營隊志願序報名系統 <span class="bg-orange-500 text-white px-1 rounded">v2.0 雲端版</span></p>
+                    <p class="text-xs text-gray-500">智慧營隊志願序報名系統 <span class="bg-orange-500 text-white px-1 rounded">v2.0.1 修復版</span></p>
                 </div>
             </div>
             <nav class="flex gap-2">
-                <button @click="switchToStudent" :class="['px-4 py-2 rounded-lg text-sm font-medium transition', currentView === 'student' ? 'bg-brand-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100']"><i class="fa-solid fa-user-pen mr-1"></i> 報名</button>
+                <button @click="switchToStudent" :class="['px-4 py-2 rounded-lg text-sm font-medium transition', currentView === 'student' ? 'bg-green-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100']"><i class="fa-solid fa-user-pen mr-1"></i> 報名</button>
                 <button @click="checkAdminAccess" :class="['px-4 py-2 rounded-lg text-sm font-medium transition', currentView === 'admin' ? 'bg-gray-800 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100']">
                     <i :class="currentView === 'admin' ? 'fa-solid fa-right-from-bracket' : 'fa-solid fa-lock'"></i> {{ currentView === 'admin' ? '登出' : '後台' }}
                 </button>
@@ -65,7 +61,7 @@
     <main class="flex-grow max-w-6xl mx-auto px-4 py-6 w-full">
         
         <div v-if="isGlobalLoading" class="text-center py-24">
-            <i class="fa-solid fa-circle-notch fa-spin text-5xl text-brand-500 mb-4"></i>
+            <i class="fa-solid fa-circle-notch fa-spin text-5xl text-green-500 mb-4"></i>
             <h2 class="text-xl font-bold text-gray-700">正在讀取最新營隊資訊...</h2>
             <p class="text-gray-400 text-sm mt-2">Connecting to Camp Database</p>
         </div>
@@ -101,23 +97,23 @@
 
                 <section v-if="camps.length > 0" class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden max-w-3xl mx-auto relative">
                     <div v-if="isExpired" class="absolute inset-0 bg-gray-100/80 z-10 flex flex-col items-center justify-center text-gray-500"><i class="fa-solid fa-calendar-xmark text-6xl mb-4"></i><h2 class="text-2xl font-bold">抱歉，報名已截止</h2></div>
-                    <div class="bg-brand-50 p-4 border-b border-brand-100 flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-brand-200 flex items-center justify-center text-brand-700"><i class="fa-solid fa-pencil"></i></div>
-                        <h2 class="font-bold text-brand-800">填寫報名志願序</h2>
+                    <div class="bg-green-50 p-4 border-b border-green-100 flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center text-green-700"><i class="fa-solid fa-pencil"></i></div>
+                        <h2 class="font-bold text-green-800">填寫報名志願序</h2>
                     </div>
                     <form @submit.prevent="submitRegistration" class="p-6 space-y-6">
                         <div class="grid md:grid-cols-2 gap-6">
-                            <div><label class="block text-sm font-medium text-gray-700 mb-1">學生姓名 *</label><input v-model="form.studentName" type="text" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 outline-none"></div>
-                            <div><label class="block text-sm font-medium text-gray-700 mb-1">家長姓名 *</label><input v-model="form.parentName" type="text" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 outline-none"></div>
-                            <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">家長聯絡電話 *</label><input v-model="form.phone" type="tel" maxlength="10" @input="validatePhone" :class="['w-full px-4 py-2 rounded-lg border outline-none', phoneError ? 'input-error' : 'border-gray-300']"><p v-if="phoneError" class="text-red-500 text-xs mt-1">{{ phoneError }}</p></div>
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">學生姓名 *</label><input v-model="form.studentName" type="text" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 outline-none"></div>
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">家長姓名 *</label><input v-model="form.parentName" type="text" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 outline-none"></div>
+                            <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">家長聯絡電話 *</label><input v-model="form.phone" type="tel" maxlength="10" @input="validatePhone" :class="['w-full px-4 py-2 rounded-lg border outline-none', phoneError ? 'input-error' : 'border-gray-300 focus:ring-green-500']"><p v-if="phoneError" class="text-red-500 text-xs mt-1">{{ phoneError }}</p></div>
                         </div>
                         <hr class="border-gray-100">
                         <div class="space-y-4">
                             <transition-group name="list" tag="div" class="space-y-3">
                                 <div v-for="(choice, idx) in form.choices" :key="idx" class="flex items-center gap-3">
-                                    <span class="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm shrink-0">{{ idx+1 }}</span>
+                                    <span class="w-8 h-8 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-sm shrink-0">{{ idx+1 }}</span>
                                     <div class="flex-grow flex gap-2">
-                                        <select v-model="form.choices[idx]" required class="flex-grow px-4 py-2 rounded-lg border border-gray-300 outline-none bg-white">
+                                        <select v-model="form.choices[idx]" required class="flex-grow px-4 py-2 rounded-lg border border-gray-300 outline-none bg-white focus:ring-2 focus:ring-green-500">
                                             <option value="" disabled>請選擇第 {{ idx+1 }} 志願</option>
                                             <option v-for="camp in camps" :key="camp.id" :value="camp.id" :disabled="isSelected(camp.id, idx)">{{ camp.name }}</option>
                                         </select>
@@ -125,9 +121,9 @@
                                     </div>
                                 </div>
                             </transition-group>
-                            <button v-if="form.choices.length < camps.length" @click="addChoice" type="button" class="text-sm text-brand-600 font-bold hover:text-brand-800 flex items-center gap-1 mt-2"><i class="fa-solid fa-circle-plus"></i> 新增下一個志願</button>
+                            <button v-if="form.choices.length < camps.length" @click="addChoice" type="button" class="text-sm text-green-600 font-bold hover:text-green-800 flex items-center gap-1 mt-2"><i class="fa-solid fa-circle-plus"></i> 新增下一個志願</button>
                         </div>
-                        <button type="submit" :disabled="!isFormValid || isExpired || isSubmitting" :class="['w-full font-bold py-3 rounded-xl shadow-lg transition transform', (!isFormValid || isExpired || isSubmitting) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-brand-600 hover:bg-brand-700 text-white active:scale-95']">
+                        <button type="submit" :disabled="!isFormValid || isExpired || isSubmitting" :class="['w-full font-bold py-3 rounded-xl shadow-lg transition transform', (!isFormValid || isExpired || isSubmitting) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white active:scale-95']">
                             <span v-if="isSubmitting"><i class="fa-solid fa-circle-notch fa-spin"></i> 處理中...</span>
                             <span v-else>提交報名表</span>
                         </button>
@@ -136,7 +132,7 @@
             </div>
 
             <div v-else-if="!isGlobalLoading && currentView === 'admin'" key="admin" class="space-y-6">
-                <div v-if="isAdminLoading" class="text-center py-20"><i class="fa-solid fa-circle-notch fa-spin text-4xl text-brand-600"></i><p>載入中...</p></div>
+                <div v-if="isAdminLoading" class="text-center py-20"><i class="fa-solid fa-circle-notch fa-spin text-4xl text-green-600"></i><p>載入中...</p></div>
                 <div v-else class="space-y-6">
                     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between">
                         <div><div class="text-gray-500 text-xs font-bold">總報名</div><div class="text-3xl font-bold">{{ students.length }}</div></div>
@@ -162,7 +158,7 @@
     <transition name="modal">
         <div v-if="showSuccessModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
             <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
-                <div class="bg-brand-600 p-4 text-white text-center"><h3 class="font-bold text-lg">報名成功！</h3></div>
+                <div class="bg-green-600 p-4 text-white text-center"><h3 class="font-bold text-lg">報名成功！</h3></div>
                 <div class="p-6 text-center">
                     <p class="mb-4">您的志願序已送出</p>
                     <button @click="showSuccessModal = false" class="w-full bg-gray-100 text-gray-600 font-bold py-3 rounded-lg">關閉</button>
@@ -178,20 +174,20 @@
 
     // ★★★ 設定區 ★★★
     const CONFIG = {
-        scriptUrl: 'https://script.google.com/macros/s/AKfycbxwOpyYxExvKiCiOsOSFmyNDH_aDgLgqQ_B8zbhfogu4S5osm_QovqvpDFNnPWY8NQ_/exec', // 請填入
+        scriptUrl: '您的_APPS_SCRIPT_網址_貼在這裡', // 請務必確認這裡的網址正確
         deadlineDate: '2026-02-01 23:59:59'
     };
 
     createApp({
         setup() {
             const currentView = ref('student');
-            const isGlobalLoading = ref(true); // Initial loading
+            const isGlobalLoading = ref(true); 
             const showSuccessModal = ref(false);
             const isSubmitting = ref(false);
             const isAdminLoading = ref(false);
             const phoneError = ref('');
             
-            const camps = ref([]); // Now empty, fetched from GAS
+            const camps = ref([]);
             const students = ref([]);
             const form = reactive({ studentName: '', parentName: '', phone: '', choices: [''] });
 
@@ -205,29 +201,30 @@
                 else { timer.days = Math.floor(distance / 86400000); timer.hours = Math.floor((distance % 86400000) / 3600000); timer.minutes = Math.floor((distance % 3600000) / 60000); timer.seconds = Math.floor((distance % 60000) / 1000); }
             };
 
-            // Fetch Camps on Mount
             const fetchCamps = () => {
                 isGlobalLoading.value = true;
-                fetch(CONFIG.scriptUrl) // GET request
+                fetch(CONFIG.scriptUrl)
                 .then(res => res.json())
                 .then(data => {
                     if(data.result === 'success') {
                         camps.value = data.camps;
                     } else {
-                        alert('無法讀取營隊資料');
+                        alert('無法讀取營隊資料，請確認後端設定');
                     }
                 })
-                .catch(e => console.error(e))
+                .catch(e => {
+                    console.error(e);
+                    // 為了避免使用者看到一直轉圈圈，如果連線失敗，我們可以塞一個假資料或顯示錯誤
+                    alert('連線失敗，請檢查網路或後端網址');
+                })
                 .finally(() => isGlobalLoading.value = false);
             };
 
-            // Auto Styles
             const colors = ['bg-gradient-to-br from-indigo-500 to-purple-600', 'bg-gradient-to-br from-green-500 to-teal-600', 'bg-gradient-to-br from-blue-500 to-cyan-600', 'bg-gradient-to-br from-orange-400 to-red-500', 'bg-gradient-to-br from-pink-500 to-rose-500'];
             const icons = ['fa-robot', 'fa-tree', 'fa-code', 'fa-utensils', 'fa-music'];
             const getAutoColor = (i) => colors[i % colors.length];
             const getAutoIcon = (i) => icons[i % icons.length];
 
-            // Core Logic
             const validatePhone = () => { const r = /^09\d{8}$/; phoneError.value = (form.phone && !r.test(form.phone)) ? '格式錯誤' : ''; };
             watch(() => form.phone, validatePhone);
             const isFormValid = computed(() => form.studentName && form.parentName && form.phone && !phoneError.value && form.choices[0]);
