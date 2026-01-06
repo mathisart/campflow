@@ -35,17 +35,35 @@
 
 <div id="app" class="min-h-screen flex flex-col">
 
-    <div :class="['fixed top-0 left-0 w-full h-[40px] text-white z-[60] flex items-center justify-center text-sm font-bold shadow-md', isCheckinMode ? 'bg-indigo-600' : 'bg-red-600']">
-        <div v-if="isCheckinMode">
-            <i class="fa-solid fa-location-dot mr-2"></i> 自助簽到模式
+    <div :class="['fixed top-0 left-0 w-full h-[40px] text-white z-[60] flex items-center justify-center text-sm font-bold shadow-md transition-colors duration-500', isCheckinMode ? 'bg-indigo-600' : 'bg-gradient-to-r from-red-600 to-red-500']">
+        <div v-if="isCheckinMode" class="flex items-center animate-fade-in">
+            <i class="fa-solid fa-location-dot mr-2 animate-bounce"></i> 自助簽到模式
         </div>
-        <div v-else>
-            <div v-if="!isExpired && deadlineDate" class="flex items-center gap-2">
-                <span class="animate-pulse"><i class="fa-solid fa-clock"></i> 截止倒數：</span>
-                <span class="font-mono text-lg bg-white/20 px-2 rounded">{{ timer.days }}天 {{ timer.hours }}:{{ timer.minutes }}:{{ timer.seconds }}</span>
+        <div v-else class="flex items-center">
+            <div v-if="!isExpired && deadlineDate" class="flex items-center gap-3">
+                <div class="flex items-center gap-2">
+                    <span class="relative flex h-2.5 w-2.5">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+                    </span>
+                    <span class="tracking-wide text-xs opacity-90">報名截止</span>
+                </div>
+                
+                <div class="flex items-center gap-1 font-mono text-base">
+                    <template v-if="timer.days > 0">
+                        <span class="bg-black/20 backdrop-blur px-1.5 rounded text-white min-w-[24px] text-center">{{ timer.days }}</span>
+                        <span class="text-xs mr-1 opacity-80">天</span>
+                    </template>
+
+                    <span class="bg-black/20 backdrop-blur px-1.5 rounded text-white min-w-[28px] text-center">{{ pad(timer.hours) }}</span>
+                    <span class="text-xs opacity-60">:</span>
+                    <span class="bg-black/20 backdrop-blur px-1.5 rounded text-white min-w-[28px] text-center">{{ pad(timer.minutes) }}</span>
+                    <span class="text-xs opacity-60">:</span>
+                    <span class="bg-black/20 backdrop-blur px-1.5 rounded text-yellow-300 min-w-[28px] text-center">{{ pad(timer.seconds) }}</span>
+                </div>
             </div>
-            <div v-else-if="isExpired" class="flex items-center gap-2"><i class="fa-solid fa-lock"></i> 報名已截止</div>
-            <div v-else class="flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> 系統連線中...</div>
+            <div v-else-if="isExpired" class="flex items-center gap-2 bg-black/20 px-3 py-1 rounded-full"><i class="fa-solid fa-lock text-yellow-400"></i> 報名已截止</div>
+            <div v-else class="flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> 資料同步中...</div>
         </div>
     </div>
 
@@ -494,7 +512,7 @@
                 students.value.forEach(s => csv += `${s.name},${s.email},${s.phone},${s.choices.map(c=>getCampName(c)).join('->')}\n`);
                 const a = document.createElement("a"); a.href = encodeURI("data:text/csv;charset=utf-8," + csv); a.download = "data.csv"; a.click();
             };
-
+            const pad = (n) => String(n).padStart(2, '0');
             return {
                 CONFIG, currentView, isGlobalLoading, camps, form, students, showSuccessModal, isSubmitting, isAdminLoading, phoneError,
                 timer, isExpired, isFormValid, getAutoColor, getAutoIcon, filteredStudents, searchQuery, deadlineDate, hasWaitlistChoice, showScanner, showCampQR, selectedCampForQR,
