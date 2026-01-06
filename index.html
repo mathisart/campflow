@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CampFlow 營隊系統 v2.9.0 (工作人員掃碼版)</title>
+    <title>CampFlow 營隊報名系統 v3.0.0 (輕量極速版)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -11,8 +11,6 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-    
     <style>
         body { font-family: 'Segoe UI', Microsoft JhengHei, sans-serif; }
         .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
@@ -27,14 +25,6 @@
             background-repeat: no-repeat;
             filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
         }
-        /* 掃描成功時的綠色閃爍動畫 */
-        @keyframes flash-green {
-            0% { background-color: rgba(34, 197, 94, 0.8); }
-            100% { background-color: transparent; }
-        }
-        .flash-effect {
-            animation: flash-green 0.5s ease-out;
-        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 pt-[40px]">
@@ -45,9 +35,9 @@
         System made by lunary
     </div>
 
-    <div :class="['fixed top-0 left-0 w-full h-[40px] text-white z-[60] flex items-center justify-center text-sm font-bold shadow-md transition-colors duration-500', isScannerOpen ? 'bg-black' : 'bg-gradient-to-r from-red-600 to-red-500']">
-        <div v-if="isScannerOpen" class="flex items-center text-green-400">
-            <i class="fa-solid fa-camera mr-2 animate-pulse"></i> 正在掃描：{{ currentTargetCamp }}
+    <div :class="['fixed top-0 left-0 w-full h-[40px] text-white z-[60] flex items-center justify-center text-sm font-bold shadow-md transition-colors duration-500', isCheckinMode ? 'bg-indigo-600' : 'bg-gradient-to-r from-red-600 to-red-500']">
+        <div v-if="isCheckinMode" class="flex items-center animate-fade-in">
+            <i class="fa-solid fa-location-dot mr-2 animate-bounce"></i> 自助簽到模式
         </div>
         <div v-else class="flex items-center">
             <div v-if="!isExpired && deadlineDate" class="flex items-center gap-3">
@@ -83,16 +73,19 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-gray-800 tracking-wide">CampFlow</h1>
-                    <p class="text-xs text-gray-500">智慧營隊系統 <span class="bg-yellow-500 text-white px-1 rounded">v2.9.0</span></p>
+                    <p class="text-xs text-gray-500">智慧營隊系統 <span class="bg-yellow-500 text-white px-1 rounded">v3.0.0</span></p>
                 </div>
             </div>
-            <nav class="flex gap-2">
+            <nav v-if="!isCheckinMode" class="flex gap-2">
                 <button @click="switchToStudent" :class="['px-4 py-2 rounded-lg text-sm font-medium transition', currentView === 'student' ? 'bg-green-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100']">
                     <i class="fa-solid fa-user-pen mr-1"></i> 報名
                 </button>
                 <button @click="checkAdminAccess" :class="['px-4 py-2 rounded-lg text-sm font-medium transition', currentView === 'admin' ? 'bg-gray-800 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100']">
                     <i :class="currentView === 'admin' ? 'fa-solid fa-right-from-bracket' : 'fa-solid fa-lock'"></i> {{ currentView === 'admin' ? '登出' : '後台' }}
                 </button>
+            </nav>
+            <nav v-else>
+                <a href="?" class="text-sm text-gray-500 underline hover:text-indigo-200">回系統首頁</a>
             </nav>
         </div>
     </header>
@@ -105,8 +98,35 @@
         </div>
 
         <transition name="fade" mode="out-in">
-            
-            <div v-if="!isGlobalLoading && currentView === 'student'" key="student" class="space-y-8">
+            <div v-if="!isGlobalLoading && isCheckinMode" key="checkin" class="max-w-md mx-auto mt-10">
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-indigo-100">
+                    <div class="bg-indigo-600 p-6 text-white text-center">
+                        <i class="fa-solid fa-location-dot text-4xl mb-3"></i>
+                        <h2 class="text-2xl font-bold">學員報到</h2>
+                        <p class="text-indigo-200 mt-1">{{ targetCampName }}</p>
+                    </div>
+                    <div class="p-8 space-y-6">
+                        <div v-if="checkinResult" :class="['p-4 rounded-lg text-center', checkinResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700']">
+                            <i :class="['fa-solid text-3xl mb-2', checkinResult.success ? 'fa-circle-check' : 'fa-circle-xmark']"></i>
+                            <p class="font-bold">{{ checkinResult.message }}</p>
+                        </div>
+                        <form v-else @submit.prevent="submitSelfCheckin">
+                            <label class="block text-sm font-bold text-gray-700 mb-2">請輸入您的聯絡電話</label>
+                            <input v-model="checkinPhone" type="tel" placeholder="09xxxxxxxx" class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-indigo-500 focus:ring-0 outline-none text-lg text-center tracking-widest" maxlength="10" required>
+                            <p class="text-xs text-gray-400 mt-2 text-center">輸入報名時填寫的電話號碼</p>
+                            <button type="submit" :disabled="isSubmitting" class="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95 disabled:bg-gray-300">
+                                <span v-if="isSubmitting"><i class="fa-solid fa-circle-notch fa-spin"></i> 簽到中...</span>
+                                <span v-else>確認簽到</span>
+                            </button>
+                        </form>
+                        <div v-if="checkinResult" class="text-center">
+                            <button @click="resetCheckin" class="text-indigo-600 underline text-sm hover:text-indigo-800">幫下一位簽到</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-else-if="!isGlobalLoading && currentView === 'student'" key="student" class="space-y-8">
                 
                 <section class="grid md:grid-cols-3 gap-6">
                     <div v-for="(camp, idx) in camps" :key="camp.id" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition group flex flex-col">
@@ -174,25 +194,26 @@
             <div v-else-if="!isGlobalLoading && currentView === 'admin'" key="admin" class="space-y-8">
                 
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h3 class="font-bold text-gray-800 text-lg mb-4"><i class="fa-solid fa-id-card-clip text-indigo-600 mr-2"></i>現場簽到管理</h3>
-                    <p class="text-sm text-gray-500 mb-6">請選擇要進行簽到的營隊，點擊按鈕後即可開啟相機連續掃描學員的入場券 QR Code。</p>
+                    <h3 class="font-bold text-gray-800 text-lg mb-4"><i class="fa-solid fa-chart-pie text-blue-500 mr-2"></i>營運概況</h3>
                     
                     <div class="grid md:grid-cols-2 gap-6">
-                        <div v-for="camp in camps" :key="camp.id" class="space-y-2 border p-4 rounded-lg bg-gray-50/50 hover:bg-white hover:shadow-md transition">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="font-bold text-gray-700 text-lg">{{ camp.name }}</span>
+                        <div v-for="camp in camps" :key="camp.id" class="space-y-2 border p-4 rounded-lg bg-gray-50/50">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-gray-700">{{ camp.name }}</span>
                                 <span :class="['text-xs px-2 py-1 rounded font-bold', camp.isConfirmed ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500']">
                                     {{ camp.isConfirmed ? '已成班' : '未成班' }}
                                 </span>
                             </div>
-                            
-                            <button @click="startAdminScanner(camp.name)" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg shadow transition flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-camera text-xl"></i>
-                                <span>掃描學員入場券</span>
-                            </button>
-                            <div class="text-xs text-gray-400 text-center mt-2">
-                                已簽到 / 總人數 (請參考下方報名資料庫)
+                            <div class="text-xs text-gray-500 flex justify-between">
+                                <span>人數: {{ camp.used }} / {{ camp.totalSlots }} (門檻 {{ camp.minSlots }})</span>
+                                <span>${{ camp.price }}</span>
                             </div>
+                            <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                                <div class="bg-blue-600 h-1.5 rounded-full" :style="{ width: Math.min(100, (camp.used / camp.totalSlots) * 100) + '%' }"></div>
+                            </div>
+                            <button @click="openCampQR(camp.name)" class="w-full text-xs bg-white text-indigo-600 hover:bg-indigo-50 py-2 rounded font-bold border border-indigo-200 mt-2 transition">
+                                <i class="fa-solid fa-print mr-1"></i> 顯示教室簽到碼
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -201,7 +222,7 @@
                     <div class="p-4 border-b border-gray-100 bg-gray-50 flex flex-col md:flex-row md:justify-between md:items-center gap-3">
                         <div class="flex items-center gap-2"><h3 class="font-bold text-gray-800"><i class="fa-solid fa-users text-green-600 mr-1"></i> 報名資料庫</h3><span class="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{{ students.length }} 筆</span></div>
                         <div class="flex gap-2">
-                            <input v-model="searchQuery" type="text" placeholder="搜尋姓名、電話..." class="px-3 py-1.5 text-sm border rounded-lg outline-none focus:border-green-500 w-64">
+                            <input v-model="searchQuery" type="text" placeholder="搜尋姓名、電話、Email..." class="px-3 py-1.5 text-sm border rounded-lg outline-none focus:border-green-500 w-64">
                             <button @click="exportCSV" class="bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 px-3 py-1.5 rounded-lg text-sm font-bold transition flex items-center gap-1"><i class="fa-solid fa-file-csv"></i> 匯出</button>
                         </div>
                     </div>
@@ -222,33 +243,13 @@
             </div>
         </transition>
 
-        <div v-if="isScannerOpen" class="fixed inset-0 bg-black z-[100] flex flex-col">
-            <div class="bg-black/80 text-white p-4 flex justify-between items-center z-10 safe-top">
-                <div class="flex flex-col">
-                    <span class="text-xs text-gray-400">目前簽到營隊</span>
-                    <span class="font-bold text-lg text-green-400">{{ currentTargetCamp }}</span>
-                </div>
-                <button @click="closeScanner" class="bg-gray-800 px-4 py-2 rounded-full text-sm font-bold border border-gray-600">
-                    <i class="fa-solid fa-xmark mr-1"></i> 關閉
-                </button>
-            </div>
-            
-            <div class="flex-grow relative bg-black flex items-center justify-center overflow-hidden">
-                <div id="reader" style="width: 100%; height: 100%;"></div>
-                
-                <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
-                    <div class="w-64 h-64 border-2 border-green-500/50 rounded-lg relative">
-                        <div class="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-green-500 -mt-1 -ml-1"></div>
-                        <div class="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-green-500 -mt-1 -mr-1"></div>
-                        <div class="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-green-500 -mb-1 -ml-1"></div>
-                        <div class="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-green-500 -mb-1 -mr-1"></div>
-                    </div>
-                </div>
-
-                <div v-if="scannerMessage" :class="['absolute bottom-20 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-lg font-bold text-lg transition-all', scannerMessage.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white']">
-                    <i :class="scannerMessage.type === 'success' ? 'fa-solid fa-check-circle' : 'fa-solid fa-circle-exclamation'"></i>
-                    {{ scannerMessage.text }}
-                </div>
+        <div v-if="showCampQR" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm" @click.self="showCampQR = false">
+            <div class="bg-white rounded-xl p-8 text-center max-w-sm w-full">
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">{{ selectedCampForQR }}</h3>
+                <p class="text-gray-500 mb-6">自助簽到專用碼</p>
+                <img :src="generateVenueQR(selectedCampForQR)" class="w-full border-4 border-black p-2 rounded-lg mb-4" alt="Venue QR">
+                <p class="text-xs text-gray-400">請列印此碼並張貼於教室入口</p>
+                <button @click="showCampQR = false" class="mt-6 w-full bg-gray-100 text-gray-800 font-bold py-3 rounded-lg hover:bg-gray-200">關閉</button>
             </div>
         </div>
 
@@ -301,13 +302,16 @@
             const showSuccessModal = ref(false);
             const isSubmitting = ref(false);
             const isAdminLoading = ref(false);
+            const showCampQR = ref(false);
+            const selectedCampForQR = ref('');
             const phoneError = ref('');
             
-            // Scanner State (Admin)
-            const isScannerOpen = ref(false);
-            const currentTargetCamp = ref('');
-            const scannerMessage = ref(null); // { type: 'success'|'error', text: '...' }
-
+            // Check-in Mode State
+            const isCheckinMode = ref(false);
+            const targetCampName = ref('');
+            const checkinPhone = ref('');
+            const checkinResult = ref(null);
+            
             const searchQuery = ref(''); 
             
             // Data
@@ -324,6 +328,11 @@
 
             // --- Lifecycle & Init ---
             onMounted(() => {
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('mode') === 'checkin' && urlParams.get('camp')) {
+                    isCheckinMode.value = true;
+                    targetCampName.value = urlParams.get('camp');
+                }
                 fetchCamps();
             });
             
@@ -376,7 +385,18 @@
                 .finally(() => isSubmitting.value = false);
             };
 
-            // --- Actions: Admin Login ---
+            // --- Actions: Self Check-in ---
+            const submitSelfCheckin = () => {
+                isSubmitting.value = true;
+                fetch(CONFIG.scriptUrl, { method: 'POST', body: JSON.stringify({ action: 'self_checkin', campName: targetCampName.value, phone: checkinPhone.value }) })
+                .then(res => res.json())
+                .then(data => { checkinResult.value = { success: data.result === 'success', message: data.message }; })
+                .catch(() => { checkinResult.value = { success: false, message: "連線失敗" }; })
+                .finally(() => isSubmitting.value = false);
+            };
+            const resetCheckin = () => { checkinResult.value = null; checkinPhone.value = ''; };
+
+            // --- Actions: Admin ---
             const checkAdminAccess = () => {
                 if(currentView.value === 'admin') { currentView.value = 'student'; students.value = []; return; }
                 const pwd = prompt("請輸入管理員密碼：");
@@ -389,87 +409,12 @@
                 }
             };
 
-            // ==========================================
-            // ★★★ 工作人員掃描器 (核心功能) ★★★
-            // ==========================================
-            let html5QrcodeScanner = null;
-            let isScanningProcessed = false; // 防止同一張碼連續掃描兩次
-
-            const startAdminScanner = (campName) => {
-                currentTargetCamp.value = campName;
-                isScannerOpen.value = true;
-                scannerMessage.value = null;
-                
-                nextTick(() => {
-                    setTimeout(() => {
-                        if (!document.getElementById("reader")) return;
-                        if (html5QrcodeScanner) { try { html5QrcodeScanner.clear(); } catch(e) {} }
-                        
-                        html5QrcodeScanner = new Html5Qrcode("reader");
-                        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-                        
-                        html5QrcodeScanner.start({ facingMode: "environment" }, config, onAdminScanSuccess)
-                        .catch(err => {
-                            alert("相機啟動失敗：" + err);
-                            isScannerOpen.value = false;
-                        });
-                    }, 300);
-                });
-            };
-
-            const closeScanner = () => {
-                if(html5QrcodeScanner) {
-                    html5QrcodeScanner.stop().then(() => {
-                        html5QrcodeScanner.clear();
-                        isScannerOpen.value = false;
-                    }).catch(() => { isScannerOpen.value = false; });
-                } else {
-                    isScannerOpen.value = false;
-                }
-            };
-
-            const onAdminScanSuccess = (decodedText) => {
-                if (isScanningProcessed) return; // 如果正在處理上一筆，先忽略
-                
-                // 暫停掃描 (不要關閉相機，只是暫停解析)
-                html5QrcodeScanner.pause();
-                isScanningProcessed = true;
-                scannerMessage.value = { type: 'info', text: '處理中...' };
-
-                // 發送簽到請求
-                fetch(CONFIG.scriptUrl, { 
-                    method: 'POST', 
-                    body: JSON.stringify({ 
-                        action: 'checkin', 
-                        password: adminPassword.value, 
-                        studentId: decodedText, // 這就是 QR Code 裡的電話號碼
-                        campName: currentTargetCamp.value 
-                    }) 
-                })
-                .then(r => r.json())
-                .then(d => {
-                    if(d.result === 'success') {
-                        // 成功：顯示綠色勾勾，並播放音效(可選)
-                        scannerMessage.value = { type: 'success', text: d.message };
-                        // 視覺回饋：閃爍畫面
-                        document.querySelector('.fixed.inset-0').classList.add('flash-effect');
-                        setTimeout(() => document.querySelector('.fixed.inset-0').classList.remove('flash-effect'), 500);
-                    } else {
-                        // 失敗：顯示紅色警告
-                        scannerMessage.value = { type: 'error', text: d.message };
-                    }
-                })
-                .catch(err => {
-                    scannerMessage.value = { type: 'error', text: '連線錯誤' };
-                })
-                .finally(() => {
-                    // 1.5秒後恢復掃描，準備掃下一位
-                    setTimeout(() => {
-                        scannerMessage.value = null;
-                        isScanningProcessed = false;
-                        html5QrcodeScanner.resume();
-                    }, 1500);
-                });
+            // --- Venue QR ---
+            const openCampQR = (campName) => { selectedCampForQR.value = campName; showCampQR.value = true; };
+            const generateVenueQR = (campName) => {
+                const baseUrl = window.location.href.split('?')[0];
+                const fullUrl = `${baseUrl}?mode=checkin&camp=${encodeURIComponent(campName)}`;
+                return `https://quickchart.io/qr?text=${encodeURIComponent(fullUrl)}&size=300`;
             };
 
             // --- Utilities ---
@@ -509,12 +454,11 @@
 
             return {
                 CONFIG, currentView, isGlobalLoading, camps, form, students, showSuccessModal, isSubmitting, isAdminLoading, phoneError,
-                timer, isExpired, isFormValid, getAutoColor, getAutoIcon, filteredStudents, searchQuery, deadlineDate, hasWaitlistChoice, 
-                pad, addChoice, removeChoice, isSelected, submitRegistration, checkAdminAccess, switchToStudent: ()=>currentView.value='student',
-                exportCSV, generatePDF, lastSubmittedStudent, getCampName, formatGASDate, validatePhone,
-                
-                // Admin Scanner
-                isScannerOpen, currentTargetCamp, scannerMessage, startAdminScanner, closeScanner
+                timer, isExpired, isFormValid, getAutoColor, getAutoIcon, filteredStudents, searchQuery, deadlineDate, hasWaitlistChoice, showCampQR, selectedCampForQR,
+                isCheckinMode, targetCampName, checkinPhone, checkinResult, pad,
+                addChoice, removeChoice, isSelected, submitRegistration, checkAdminAccess, switchToStudent: ()=>currentView.value='student',
+                exportCSV, generatePDF, lastSubmittedStudent, openCampQR, generateVenueQR, submitSelfCheckin, resetCheckin,
+                getCampName, formatGASDate, validatePhone
             };
         }
     }).mount('#app');
