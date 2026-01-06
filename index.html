@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CampFlow 營隊報名系統 v3.1.0 (詳細票券版)</title>
+    <title>CampFlow 營隊報名系統 v3.2.0 (動態資料庫版)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -19,7 +19,6 @@
         .list-enter-active, .list-leave-active { transition: all 0.4s ease; }
         .list-enter-from, .list-leave-to { opacity: 0; transform: translateY(-10px); }
         
-        /* 票券視覺設計：增加紙張質感 */
         .ticket-visual {
             background: white;
             position: relative;
@@ -28,7 +27,6 @@
             overflow: hidden;
             border: 1px solid #e5e7eb;
         }
-        /* 頂部裝飾條 */
         .ticket-header-strip {
             height: 12px;
             background: repeating-linear-gradient(45deg, #4f46e5, #4f46e5 10px, #4338ca 10px, #4338ca 20px);
@@ -81,7 +79,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-gray-800 tracking-wide">CampFlow</h1>
-                    <p class="text-xs text-gray-500">智慧營隊系統 <span class="bg-yellow-500 text-white px-1 rounded">v3.1.0</span></p>
+                    <p class="text-xs text-gray-500">智慧營隊系統 <span class="bg-yellow-500 text-white px-1 rounded">v3.2.0</span></p>
                 </div>
             </div>
             <nav v-if="!isCheckinMode" class="flex gap-2">
@@ -145,7 +143,7 @@
                         </div>
                         <div class="p-5 flex flex-col flex-grow">
                             <h3 class="font-bold text-lg mb-1">{{ camp.name }}</h3>
-                            <div class="text-sm text-gray-600 mb-3 bg-gray-50 p-2 rounded border border-gray-100">
+                            <div v-if="camp.details" class="text-sm text-gray-600 mb-3 bg-gray-50 p-2 rounded border border-gray-100">
                                 <p class="line-clamp-3">{{ camp.details }}</p>
                             </div>
                             <div class="mt-auto pt-3 border-t border-gray-100">
@@ -332,46 +330,6 @@
         scriptUrl: 'https://script.google.com/macros/s/AKfycbxwOpyYxExvKiCiOsOSFmyNDH_aDgLgqQ_B8zbhfogu4S5osm_QovqvpDFNnPWY8NQ_/exec',
     };
 
-    // ★★★ [資料庫] 115年寒假營隊詳細資料 (依照 Word 檔) ★★★
-    const CAMP_INFO = {
-        "英文會話營": {
-            details: "由外師 Lucy 帶領，進行全英語互動對話。透過影片、閱讀、遊戲、桌遊等多元方式，打造沉浸式環境，讓你自然開口說英文。",
-            note: ""
-        },
-        "科學實驗營": {
-            details: "外聘講師指導，透過動手做了解科學原理。課程包含：QQ彈力球、銀河沉靜瓶、春節小吊燈、滑翔螺旋探究、百變史萊姆、復活節彩蛋、螺旋紙蜻蜓及專題研究分組報告等。",
-            note: "需另繳材料費：500元 (請於第一天上課繳交)"
-        },
-        "烘焙點心營": {
-            details: "搶不到點心社的同學一定要把握！親手製作自己都想不到的【好吃】點心，享受烘焙樂趣。",
-            note: "需另繳材料費：500元 (請於第一天上課繳交)"
-        },
-        "AI營": {
-            details: "學會 Canva、AI 工具、平板應用及剪片技能。善用於學習筆記與報告製作，讓自己走在數位時代的潮流尖端。",
-            note: "需自備平板 (若無可借用學校設備)"
-        },
-        "運動強身營": {
-            details: "包含多元球類運動（籃球、排球、匹克球、桌球等）以及基礎體能訓練，強健體魄。",
-            note: "請著運動服裝並攜帶毛巾、水壺"
-        },
-        "偷偷變強營(語文類)": {
-            details: "國文8節、英文8節、活動課4節。針對學期成績不及格者，若全勤且態度認真，可視為補考通過 (60分)，開學無須再補考。",
-            note: "全勤且表現良好可抵免補考"
-        },
-        "偷偷變強營(數學營)": {
-            details: "數學10節、數學遊戲4節、活動課4節。針對學期成績不及格者，若全勤且態度認真，可視為補考通過 (60分)，開學無須再補考。",
-            note: "全勤且表現良好可抵免補考"
-        },
-        "偷偷變強營(社會營)": {
-            details: "歷史6節、地理6節、公民6節、活動課2節。針對學期成績不及格者，若全勤且態度認真，可視為補考通過 (60分)，開學無須再補考。",
-            note: "全勤且表現良好可抵免補考"
-        },
-        "偷偷變強營(自然營)": {
-            details: "自然10節、數位或實驗4節、活動課4節。針對學期成績不及格者，若全勤且態度認真，可視為補考通過 (60分)，開學無須再補考。",
-            note: "全勤且表現良好可抵免補考"
-        }
-    };
-
     createApp({
         setup() {
             const currentView = ref('student');
@@ -422,11 +380,7 @@
                 .then(res => res.json())
                 .then(data => {
                     if(data.result === 'success') {
-                        // ★★★ 將後端資料與前端詳細說明合併 ★★★
-                        camps.value = data.camps.map(c => {
-                            const info = CAMP_INFO[c.name] || { details: "暫無詳細說明", note: "" };
-                            return { ...c, ...info };
-                        });
+                        camps.value = data.camps;
                         deadlineDate.value = data.deadline;
                         updateTimer();
                         if(!timerInterval) timerInterval = setInterval(updateTimer, 1000);
@@ -512,7 +466,7 @@
                 return c ? c.name : val; 
             };
             const getCampDetail = (name) => {
-                // 從合併後的 camps 陣列中找
+                // 直接使用後端回傳的資料
                 const c = camps.value.find(x => x.name === name);
                 return c ? c : { details: '', note: '' };
             };
