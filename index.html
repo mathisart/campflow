@@ -377,7 +377,7 @@
             const timer = reactive({ days: 0, hours: 0, minutes: 0, seconds: 0 });
             const isExpired = ref(false);
             let timerInterval = null;
-
+            const pad = (n) => String(n).padStart(2, '0');
             // --- Lifecycle & Init ---
             onMounted(() => {
                 // URL Params Check for Self Check-in
@@ -512,7 +512,7 @@
                 students.value.forEach(s => csv += `${s.name},${s.email},${s.phone},${s.choices.map(c=>getCampName(c)).join('->')}\n`);
                 const a = document.createElement("a"); a.href = encodeURI("data:text/csv;charset=utf-8," + csv); a.download = "data.csv"; a.click();
             };
-            const pad = (n) => String(n).padStart(2, '0');
+
             return {
                 CONFIG, currentView, isGlobalLoading, camps, form, students, showSuccessModal, isSubmitting, isAdminLoading, phoneError,
                 timer, isExpired, isFormValid, getAutoColor, getAutoIcon, filteredStudents, searchQuery, deadlineDate, hasWaitlistChoice, showScanner, showCampQR, selectedCampForQR,
