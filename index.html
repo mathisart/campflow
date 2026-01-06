@@ -346,7 +346,8 @@
     // ★★★ CONFIGURATION 設定區 ★★★
     // ==========================================
     const CONFIG = {
-        scriptUrl: 'https://script.google.com/macros/s/AKfycbxwOpyYxExvKiCiOsOSFmyNDH_aDgLgqQ_B8zbhfogu4S5osm_QovqvpDFNnPWY8NQ_/exec', // 請填入 Google Apps Script 網址
+        // 請確認您的 GAS 網址是否正確
+        scriptUrl: 'https://script.google.com/macros/s/AKfycbxwOpyYxExvKiCiOsOSFmyNDH_aDgLgqQ_B8zbhfogu4S5osm_QovqvpDFNnPWY8NQ_/exec', 
     };
 
     createApp({
@@ -367,7 +368,8 @@
             const targetCampName = ref('');
             const checkinPhone = ref('');
             const checkinResult = ref(null);
-            const searchQuery = ref('');
+            const searchQuery = ref(''); // ✅ 已修復：搜尋變數存在
+            
             // Data
             const camps = ref([]);
             const students = ref([]);
@@ -377,10 +379,12 @@
             const timer = reactive({ days: 0, hours: 0, minutes: 0, seconds: 0 });
             const isExpired = ref(false);
             let timerInterval = null;
+
+            // ✅ 已新增：補零函式
             const pad = (n) => String(n).padStart(2, '0');
+
             // --- Lifecycle & Init ---
             onMounted(() => {
-                // URL Params Check for Self Check-in
                 const urlParams = new URLSearchParams(window.location.search);
                 if (urlParams.get('mode') === 'checkin' && urlParams.get('camp')) {
                     isCheckinMode.value = true;
@@ -412,7 +416,12 @@
                 if(!deadlineDate.value) return;
                 const distance = new Date(deadlineDate.value).getTime() - new Date().getTime();
                 if (distance < 0) isExpired.value = true;
-                else { timer.days = Math.floor(distance / 86400000); timer.hours = Math.floor((distance % 86400000) / 3600000); timer.minutes = Math.floor((distance % 3600000) / 60000); timer.seconds = Math.floor((distance % 60000) / 1000); }
+                else { 
+                    timer.days = Math.floor(distance / 86400000); 
+                    timer.hours = Math.floor((distance % 86400000) / 3600000); 
+                    timer.minutes = Math.floor((distance % 3600000) / 60000); 
+                    timer.seconds = Math.floor((distance % 60000) / 1000); 
+                }
             };
 
             // --- Actions: Register ---
@@ -517,6 +526,8 @@
                 CONFIG, currentView, isGlobalLoading, camps, form, students, showSuccessModal, isSubmitting, isAdminLoading, phoneError,
                 timer, isExpired, isFormValid, getAutoColor, getAutoIcon, filteredStudents, searchQuery, deadlineDate, hasWaitlistChoice, showScanner, showCampQR, selectedCampForQR,
                 isCheckinMode, targetCampName, checkinPhone, checkinResult,
+                // ★ 關鍵修正：這裡原本少了 pad，一定要加進來！
+                pad,
                 addChoice, removeChoice, isSelected, submitRegistration, checkAdminAccess, switchToStudent: ()=>currentView.value='student',
                 exportCSV, generatePDF, lastSubmittedStudent, startScanner, closeScanner, openCampQR, generateVenueQR, submitSelfCheckin, resetCheckin
             };
