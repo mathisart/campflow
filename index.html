@@ -3,19 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CampFlow 營隊系統 v2.7.0 (營運強化)</title>
+    <title>CampFlow 營隊報名系統 v2.7.0 (最終完整版)</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
     <style>
         body { font-family: 'Segoe UI', Microsoft JhengHei, sans-serif; }
         .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
         .fade-enter-from, .fade-leave-to { opacity: 0; }
         .list-enter-active, .list-leave-active { transition: all 0.4s ease; }
         .list-enter-from, .list-leave-to { opacity: 0; transform: translateY(-10px); }
+        
+        /* 票券的防偽底紋效果 */
         .ticket-visual {
             background-image: radial-gradient(circle at 0 50%, transparent 10px, white 11px), 
                               radial-gradient(circle at 100% 50%, transparent 10px, white 11px);
@@ -31,14 +36,16 @@
 <div id="app" class="min-h-screen flex flex-col">
 
     <div :class="['fixed top-0 left-0 w-full h-[40px] text-white z-[60] flex items-center justify-center text-sm font-bold shadow-md', isCheckinMode ? 'bg-indigo-600' : 'bg-red-600']">
-        <div v-if="isCheckinMode"><i class="fa-solid fa-location-dot mr-2"></i> 自助簽到模式</div>
+        <div v-if="isCheckinMode">
+            <i class="fa-solid fa-location-dot mr-2"></i> 自助簽到模式
+        </div>
         <div v-else>
             <div v-if="!isExpired && deadlineDate" class="flex items-center gap-2">
                 <span class="animate-pulse"><i class="fa-solid fa-clock"></i> 截止倒數：</span>
                 <span class="font-mono text-lg bg-white/20 px-2 rounded">{{ timer.days }}天 {{ timer.hours }}:{{ timer.minutes }}:{{ timer.seconds }}</span>
             </div>
             <div v-else-if="isExpired" class="flex items-center gap-2"><i class="fa-solid fa-lock"></i> 報名已截止</div>
-            <div v-else class="flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> 連線中...</div>
+            <div v-else class="flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> 系統連線中...</div>
         </div>
     </div>
 
@@ -48,48 +55,83 @@
                 <img src="https://tjjh.tc.edu.tw/var/file/126/1126/msys_1126_7604592_06998.png" alt="校徽" class="h-12 w-auto mr-2 object-contain">
                 <div>
                     <h1 class="text-xl font-bold text-gray-800 tracking-wide">CampFlow</h1>
-                    <p class="text-xs text-gray-500">智慧營隊系統 <span class="bg-yellow-500 text-white px-1 rounded">v2.7 營運版</span></p>
+                    <p class="text-xs text-gray-500">智慧營隊系統 <span class="bg-yellow-500 text-white px-1 rounded">v2.7 完整版</span></p>
                 </div>
             </div>
+            
             <nav v-if="!isCheckinMode" class="flex gap-2">
-                <button @click="switchToStudent" :class="['px-4 py-2 rounded-lg text-sm font-medium transition', currentView === 'student' ? 'bg-green-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100']"><i class="fa-solid fa-user-pen mr-1"></i> 報名</button>
-                <button @click="checkAdminAccess" :class="['px-4 py-2 rounded-lg text-sm font-medium transition', currentView === 'admin' ? 'bg-gray-800 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100']"><i :class="currentView === 'admin' ? 'fa-solid fa-right-from-bracket' : 'fa-solid fa-lock'"></i> {{ currentView === 'admin' ? '登出' : '後台' }}</button>
+                <button @click="switchToStudent" :class="['px-4 py-2 rounded-lg text-sm font-medium transition', currentView === 'student' ? 'bg-green-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100']">
+                    <i class="fa-solid fa-user-pen mr-1"></i> 報名
+                </button>
+                <button @click="checkAdminAccess" :class="['px-4 py-2 rounded-lg text-sm font-medium transition', currentView === 'admin' ? 'bg-gray-800 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100']">
+                    <i :class="currentView === 'admin' ? 'fa-solid fa-right-from-bracket' : 'fa-solid fa-lock'"></i> {{ currentView === 'admin' ? '登出' : '後台' }}
+                </button>
             </nav>
-            <nav v-else><a href="?" class="text-sm text-gray-500 underline">回首頁</a></nav>
+            <nav v-else>
+                <a href="?" class="text-sm text-gray-500 underline hover:text-indigo-200">回系統首頁</a>
+            </nav>
         </div>
     </header>
 
     <main class="flex-grow max-w-6xl mx-auto px-4 py-6 w-full">
-        <div v-if="isGlobalLoading" class="text-center py-24"><i class="fa-solid fa-circle-notch fa-spin text-5xl text-green-500 mb-4"></i><h2 class="text-xl font-bold text-gray-700">正在同步資料...</h2></div>
+        
+        <div v-if="isGlobalLoading" class="text-center py-24">
+            <i class="fa-solid fa-circle-notch fa-spin text-5xl text-green-500 mb-4"></i>
+            <h2 class="text-xl font-bold text-gray-700">正在同步雲端資料...</h2>
+            <p class="text-gray-400 text-sm mt-2">Connecting to Google Sheets</p>
+        </div>
 
         <transition name="fade" mode="out-in">
+            
             <div v-if="!isGlobalLoading && isCheckinMode" key="checkin" class="max-w-md mx-auto mt-10">
                 <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-indigo-100">
-                    <div class="bg-indigo-600 p-6 text-white text-center"><i class="fa-solid fa-location-dot text-4xl mb-3"></i><h2 class="text-2xl font-bold">學員報到</h2><p class="text-indigo-200 mt-1">{{ targetCampName }}</p></div>
+                    <div class="bg-indigo-600 p-6 text-white text-center">
+                        <i class="fa-solid fa-location-dot text-4xl mb-3"></i>
+                        <h2 class="text-2xl font-bold">學員報到</h2>
+                        <p class="text-indigo-200 mt-1">{{ targetCampName }}</p>
+                    </div>
                     <div class="p-8 space-y-6">
-                        <div v-if="checkinResult" :class="['p-4 rounded-lg text-center', checkinResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700']"><i :class="['fa-solid text-3xl mb-2', checkinResult.success ? 'fa-circle-check' : 'fa-circle-xmark']"></i><p class="font-bold">{{ checkinResult.message }}</p></div>
+                        <div v-if="checkinResult" :class="['p-4 rounded-lg text-center', checkinResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700']">
+                            <i :class="['fa-solid text-3xl mb-2', checkinResult.success ? 'fa-circle-check' : 'fa-circle-xmark']"></i>
+                            <p class="font-bold">{{ checkinResult.message }}</p>
+                        </div>
+
                         <form v-else @submit.prevent="submitSelfCheckin">
                             <label class="block text-sm font-bold text-gray-700 mb-2">請輸入您的聯絡電話</label>
                             <input v-model="checkinPhone" type="tel" placeholder="09xxxxxxxx" class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-indigo-500 focus:ring-0 outline-none text-lg text-center tracking-widest" maxlength="10" required>
-                            <button type="submit" :disabled="isSubmitting" class="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg transition disabled:bg-gray-300"><span v-if="isSubmitting"><i class="fa-solid fa-circle-notch fa-spin"></i> 簽到中...</span><span v-else>確認簽到</span></button>
+                            <p class="text-xs text-gray-400 mt-2 text-center">輸入報名時填寫的電話號碼</p>
+                            
+                            <button type="submit" :disabled="isSubmitting" class="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95 disabled:bg-gray-300">
+                                <span v-if="isSubmitting"><i class="fa-solid fa-circle-notch fa-spin"></i> 簽到中...</span>
+                                <span v-else>確認簽到</span>
+                            </button>
                         </form>
-                        <div v-if="checkinResult" class="text-center"><button @click="resetCheckin" class="text-indigo-600 underline text-sm">幫下一位簽到</button></div>
+                        
+                        <div v-if="checkinResult" class="text-center">
+                            <button @click="resetCheckin" class="text-indigo-600 underline text-sm hover:text-indigo-800">幫下一位簽到</button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div v-else-if="!isGlobalLoading && currentView === 'student'" key="student" class="space-y-8">
+                
                 <section class="grid md:grid-cols-3 gap-6">
                     <div v-for="(camp, idx) in camps" :key="camp.id" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition group flex flex-col">
                         <div class="h-32 bg-gray-200 relative overflow-hidden shrink-0">
-                            <div :class="['absolute inset-0 flex items-center justify-center text-4xl text-white opacity-80', getAutoColor(idx)]"><i :class="['fa-solid', getAutoIcon(idx)]"></i></div>
-                            <div class="absolute top-2 left-2 bg-black/60 backdrop-blur px-2 py-1 rounded text-xs text-white font-mono">
-                                <i class="fa-solid fa-tag mr-1 text-yellow-400"></i>NT$ {{ camp.price.toLocaleString() }}
+                            <div :class="['absolute inset-0 flex items-center justify-center text-4xl text-white opacity-80', getAutoColor(idx)]">
+                                <i :class="['fa-solid', getAutoIcon(idx)]"></i>
+                            </div>
+                            <div class="absolute top-2 left-2 bg-black/60 backdrop-blur px-2 py-1 rounded text-xs text-white font-mono shadow">
+                                <i class="fa-solid fa-tag mr-1 text-yellow-400"></i>NT$ {{ camp.price ? camp.price.toLocaleString() : '免費' }}
                             </div>
                             <div class="absolute top-2 right-2 bg-white/95 backdrop-blur px-2 py-1 rounded text-xs shadow">
-                                <span :class="camp.slots <= 0 ? 'text-gray-500 font-bold' : (camp.slots < 5 ? 'text-red-500 animate-pulse font-bold' : 'text-green-600 font-bold')">{{ camp.slots <= 0 ? '已額滿 (可排候補)' : '剩餘 ' + camp.slots + ' 名額' }}</span>
+                                <span :class="camp.slots <= 0 ? 'text-gray-500 font-bold' : (camp.slots < 5 ? 'text-red-500 animate-pulse font-bold' : 'text-green-600 font-bold')">
+                                    {{ camp.slots <= 0 ? '已額滿 (可排候補)' : '剩餘 ' + camp.slots + ' 名額' }}
+                                </span>
                             </div>
                         </div>
+                        
                         <div class="p-5 flex flex-col flex-grow">
                             <h3 class="font-bold text-lg mb-1">{{ camp.name }}</h3>
                             <p class="text-gray-500 text-sm mb-4 line-clamp-2 h-10">{{ camp.desc }}</p>
@@ -97,11 +139,16 @@
                             <div class="mt-auto pt-3 border-t border-gray-100">
                                 <div class="flex justify-between items-center mb-1">
                                     <span class="text-xs font-bold text-gray-500">開班進度</span>
-                                    <span v-if="camp.isConfirmed" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold"><i class="fa-solid fa-fire mr-1"></i>確定開班</span>
-                                    <span v-else class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">尚需 {{ Math.max(0, camp.minSlots - camp.used) }} 人</span>
+                                    <span v-if="camp.isConfirmed" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">
+                                        <i class="fa-solid fa-fire mr-1"></i>確定開班
+                                    </span>
+                                    <span v-else class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                                        尚需 {{ Math.max(0, camp.minSlots - camp.used) }} 人
+                                    </span>
                                 </div>
                                 <div class="w-full bg-gray-200 rounded-full h-1.5">
-                                    <div :class="['h-1.5 rounded-full transition-all duration-1000', camp.isConfirmed ? 'bg-green-500' : 'bg-gray-400']" :style="{ width: Math.min(100, (camp.used / camp.minSlots) * 100) + '%' }"></div>
+                                    <div :class="['h-1.5 rounded-full transition-all duration-1000', camp.isConfirmed ? 'bg-green-500' : 'bg-gray-400']" 
+                                         :style="{ width: Math.min(100, (camp.used / camp.minSlots) * 100) + '%' }"></div>
                                 </div>
                                 <div class="flex justify-between items-center text-xs text-gray-400 mt-2">
                                     <span><i class="fa-regular fa-calendar mr-1"></i>{{ camp.date }}</span>
@@ -113,19 +160,25 @@
                 </section>
 
                 <section v-if="camps.length > 0" class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden max-w-3xl mx-auto relative">
-                    <div v-if="isExpired" class="absolute inset-0 bg-gray-100/80 z-10 flex flex-col items-center justify-center text-gray-500"><i class="fa-solid fa-calendar-xmark text-6xl mb-4"></i><h2 class="text-2xl font-bold">抱歉，報名已截止</h2></div>
+                    <div v-if="isExpired" class="absolute inset-0 bg-gray-100/80 z-10 flex flex-col items-center justify-center text-gray-500">
+                        <i class="fa-solid fa-calendar-xmark text-6xl mb-4"></i>
+                        <h2 class="text-2xl font-bold">抱歉，報名已截止</h2>
+                    </div>
+
                     <div class="bg-green-50 p-4 border-b border-green-100 flex items-center gap-3">
                         <div class="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center text-green-700"><i class="fa-solid fa-pencil"></i></div>
                         <h2 class="font-bold text-green-800">填寫報名志願序</h2>
                     </div>
+
                     <form @submit.prevent="submitRegistration" class="p-6 space-y-6">
                         <div class="grid md:grid-cols-2 gap-6">
                             <div><label class="block text-sm font-medium text-gray-700 mb-1">學生姓名 *</label><input v-model="form.studentName" type="text" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 outline-none"></div>
                             <div><label class="block text-sm font-medium text-gray-700 mb-1">家長姓名 *</label><input v-model="form.parentName" type="text" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 outline-none"></div>
-                            <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">電子信箱 *</label><input v-model="form.email" type="email" placeholder="example@email.com" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 outline-none"></div>
+                            <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">電子信箱 (接收通知用) *</label><input v-model="form.email" type="email" placeholder="example@email.com" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 outline-none"></div>
                             <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">聯絡電話 *</label><input v-model="form.phone" type="tel" maxlength="10" @input="validatePhone" :class="['w-full px-4 py-2 rounded-lg border outline-none', phoneError ? 'input-error' : 'border-gray-300 focus:ring-green-500']"><p v-if="phoneError" class="text-red-500 text-xs mt-1">{{ phoneError }}</p></div>
                         </div>
                         <hr class="border-gray-100">
+                        
                         <div class="space-y-4">
                             <transition-group name="list" tag="div" class="space-y-3">
                                 <div v-for="(choice, idx) in form.choices" :key="idx" class="flex items-center gap-3">
@@ -143,7 +196,14 @@
                             </transition-group>
                             <button v-if="form.choices.length < camps.length" @click="addChoice" type="button" class="text-sm text-green-600 font-bold hover:text-green-800 flex items-center gap-1 mt-2"><i class="fa-solid fa-circle-plus"></i> 新增下一個志願</button>
                         </div>
-                        <div v-if="hasWaitlistChoice" class="bg-yellow-50 border-l-4 border-yellow-400 p-4"><p class="text-sm text-yellow-700">包含已額滿營隊，將自動列入候補。</p></div>
+
+                        <div v-if="hasWaitlistChoice" class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0"><i class="fa-solid fa-circle-exclamation text-yellow-400"></i></div>
+                                <div class="ml-3"><p class="text-sm text-yellow-700">您選擇了已額滿的營隊，送出後將自動列入 <strong>候補名單</strong>。</p></div>
+                            </div>
+                        </div>
+
                         <button type="submit" :disabled="!isFormValid || isExpired || isSubmitting" :class="['w-full font-bold py-3 rounded-xl shadow-lg transition transform', (!isFormValid || isExpired || isSubmitting) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white active:scale-95']">
                             <span v-if="isSubmitting"><i class="fa-solid fa-circle-notch fa-spin"></i> 處理中...</span>
                             <span v-else>提交報名表</span>
@@ -153,29 +213,80 @@
             </div>
 
             <div v-else-if="!isGlobalLoading && currentView === 'admin'" key="admin" class="space-y-8">
+                
                 <div v-if="showScanner" class="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center text-white">
-                    <h3 class="text-xl font-bold mb-4">📷 QR Code 簽到</h3><div id="reader" style="width: 300px; height: 300px; background: #000;"></div><button @click="closeScanner" class="mt-6 bg-gray-700 px-6 py-2 rounded-full font-bold">關閉</button>
+                    <h3 class="text-xl font-bold mb-4"><i class="fa-solid fa-qrcode mr-2"></i>QR Code 簽到</h3>
+                    <div id="reader" style="width: 300px; height: 300px; background: #000; border-radius: 12px; overflow: hidden;"></div>
+                    <p class="mt-4 text-gray-400 text-sm">請將票券對準鏡頭</p>
+                    <button @click="closeScanner" class="mt-6 bg-gray-700 px-6 py-2 rounded-full font-bold hover:bg-gray-600">關閉掃描器</button>
                 </div>
+
                 <div v-if="showCampQR" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm" @click.self="showCampQR = false">
                     <div class="bg-white rounded-xl p-8 text-center max-w-sm w-full">
-                        <h3 class="text-2xl font-bold text-gray-800 mb-2">{{ selectedCampForQR }}</h3><p class="text-gray-500 mb-6">自助簽到專用碼</p>
-                        <img :src="generateVenueQR(selectedCampForQR)" class="w-full border-4 border-black p-2 rounded-lg mb-4">
-                        <button @click="showCampQR = false" class="mt-6 w-full bg-gray-100 text-gray-800 font-bold py-3 rounded-lg">關閉</button>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-2">{{ selectedCampForQR }}</h3>
+                        <p class="text-gray-500 mb-6">自助簽到專用碼</p>
+                        <img :src="generateVenueQR(selectedCampForQR)" class="w-full border-4 border-black p-2 rounded-lg mb-4" alt="Venue QR">
+                        <p class="text-xs text-gray-400">請列印此碼並張貼於教室入口</p>
+                        <button @click="showCampQR = false" class="mt-6 w-full bg-gray-100 text-gray-800 font-bold py-3 rounded-lg hover:bg-gray-200">關閉</button>
                     </div>
                 </div>
 
-                <div class="space-y-6">
+                <div v-if="isAdminLoading" class="text-center py-20"><i class="fa-solid fa-circle-notch fa-spin text-4xl text-green-600"></i><p class="mt-2 text-gray-500">讀取資料中...</p></div>
+                
+                <div v-else class="space-y-6">
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                        <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-gray-800">各營隊概況</h3><button @click="startScanner" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow">管理員掃碼</button></div>
+                        <div class="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
+                            <h3 class="font-bold text-gray-800 text-lg"><i class="fa-solid fa-chart-pie text-blue-500 mr-2"></i>營運概況</h3>
+                            <button @click="startScanner" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-blue-700 flex items-center gap-2">
+                                <i class="fa-solid fa-camera"></i> 管理員掃碼簽到
+                            </button>
+                        </div>
+                        
                         <div class="grid md:grid-cols-2 gap-6">
-                            <div v-for="camp in camps" :key="camp.id" class="space-y-2 border p-4 rounded-lg">
-                                <div class="flex justify-between items-center"><span class="font-bold text-gray-700">{{ camp.name }}</span><span :class="['text-xs px-2 py-1 rounded font-bold', camp.isConfirmed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500']">{{ camp.isConfirmed ? '已成班' : '未成班' }}</span></div>
-                                <div class="text-xs text-gray-500 flex justify-between"><span>已報 {{ camp.used }} / 門檻 {{ camp.minSlots }}</span><span>費用: ${{ camp.price }}</span></div>
-                                <button @click="openCampQR(camp.name)" class="w-full text-xs bg-indigo-50 text-indigo-600 hover:bg-indigo-100 py-2 rounded font-bold border border-indigo-200"><i class="fa-solid fa-print mr-1"></i> 顯示教室簽到碼</button>
+                            <div v-for="camp in camps" :key="camp.id" class="space-y-2 border p-4 rounded-lg bg-gray-50/50">
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-gray-700">{{ camp.name }}</span>
+                                    <span :class="['text-xs px-2 py-1 rounded font-bold', camp.isConfirmed ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500']">
+                                        {{ camp.isConfirmed ? '已成班' : '未成班' }}
+                                    </span>
+                                </div>
+                                <div class="text-xs text-gray-500 flex justify-between">
+                                    <span>人數: {{ camp.used }} / {{ camp.totalSlots }} (門檻 {{ camp.minSlots }})</span>
+                                    <span>${{ camp.price }}</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                                    <div class="bg-blue-600 h-1.5 rounded-full" :style="{ width: Math.min(100, (camp.used / camp.totalSlots) * 100) + '%' }"></div>
+                                </div>
+                                <button @click="openCampQR(camp.name)" class="w-full text-xs bg-white text-indigo-600 hover:bg-indigo-50 py-2 rounded font-bold border border-indigo-200 mt-2 transition">
+                                    <i class="fa-solid fa-print mr-1"></i> 顯示教室簽到碼
+                                </button>
                             </div>
                         </div>
                     </div>
+
+                    <div class="bg-white rounded-xl shadow border border-gray-100 overflow-hidden">
+                        <div class="p-4 border-b border-gray-100 bg-gray-50 flex flex-col md:flex-row md:justify-between md:items-center gap-3">
+                            <div class="flex items-center gap-2"><h3 class="font-bold text-gray-800"><i class="fa-solid fa-users text-green-600 mr-1"></i> 報名資料庫</h3><span class="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{{ students.length }} 筆</span></div>
+                            <div class="flex gap-2">
+                                <input v-model="searchQuery" type="text" placeholder="搜尋姓名、電話、Email..." class="px-3 py-1.5 text-sm border rounded-lg outline-none focus:border-green-500 w-64">
+                                <button @click="exportCSV" class="bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 px-3 py-1.5 rounded-lg text-sm font-bold transition flex items-center gap-1"><i class="fa-solid fa-file-csv"></i> 匯出</button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left text-gray-500">
+                                <thead class="bg-gray-100 text-gray-700 uppercase text-xs"><tr><th class="px-6 py-3">姓名</th><th class="px-6 py-3">聯絡資訊</th><th class="px-6 py-3">志願序</th><th class="px-6 py-3">時間</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="(s, i) in filteredStudents" :key="i" class="border-b bg-white hover:bg-gray-50">
+                                        <td class="px-6 py-4"><div class="font-bold text-gray-900 text-base">{{ s.name }}</div><div class="text-xs text-gray-400">#{{ filteredStudents.length - i }}</div></td>
+                                        <td class="px-6 py-4"><div class="text-gray-900 text-xs mb-1"><i class="fa-regular fa-envelope mr-1"></i>{{ s.email }}</div><div class="text-blue-600 font-mono"><i class="fa-solid fa-phone mr-1"></i>{{ s.phone }}</div></td>
+                                        <td class="px-6 py-4"><div class="flex flex-wrap gap-2"><span v-for="(c, idx) in s.choices" :key="idx" :class="['px-2 py-1 rounded text-xs border', idx===0?'bg-green-50 border-green-200 text-green-700 font-bold':'bg-gray-50 border-gray-200 text-gray-600']">{{ idx+1 }}. {{ getCampName(c) }}</span></div></td>
+                                        <td class="px-6 py-4 text-xs text-gray-500 font-mono">{{ formatGASDate(s.timestamp) }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
+                </div>
             </div>
         </transition>
 
@@ -184,27 +295,45 @@
                 <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
                     <div class="bg-green-600 p-4 text-white text-center"><h3 class="font-bold text-lg">報名成功！</h3></div>
                     <div class="p-6">
-                        <p class="text-center mb-4">請依照指示繳交費用：<span class="font-bold text-red-600">NT$ {{ camps.find(c=>c.id===lastSubmittedStudent?.choices[0])?.price }}</span></p>
-                        <button @click="showSuccessModal = false" class="w-full bg-gray-100 text-gray-600 font-bold py-3 rounded-lg">關閉</button>
+                        <div id="ticket-content" class="bg-white border-2 border-dashed border-gray-300 rounded-xl p-4 mb-6 ticket-visual relative">
+                            <div class="text-center mb-4"><img src="https://tjjh.tc.edu.tw/var/file/126/1126/msys_1126_7604592_06998.png" alt="校徽" class="h-16 mx-auto object-contain"></div>
+                            <div class="text-center mb-2"><h4 class="font-bold text-xl text-brand-600">ADMISSION TICKET</h4></div>
+                            <div class="space-y-2 text-sm mb-4">
+                                <div class="flex justify-between border-b pb-1"><span class="text-gray-500">學生</span><span class="font-bold">{{ lastSubmittedStudent?.studentName }}</span></div>
+                                <div class="flex justify-between border-b pb-1"><span class="text-gray-500">第一志願</span><span class="font-bold text-green-600">{{ getCampName(lastSubmittedStudent?.choices[0]) }}</span></div>
+                            </div>
+                            <div class="text-center mt-4">
+                                <img :src="'https://quickchart.io/qr?text=' + lastSubmittedStudent?.phone + '&size=150'" class="mx-auto border p-1 rounded" alt="QR Code">
+                                <p class="text-[10px] text-gray-400 mt-1">ID: {{ lastSubmittedStudent?.phone }}</p>
+                            </div>
+                        </div>
+                        <div class="text-center mb-4 text-sm bg-gray-100 p-2 rounded">
+                            請準備繳交費用：<span class="font-bold text-red-600">NT$ {{ camps.find(c=>c.id===lastSubmittedStudent?.choices[0])?.price }}</span>
+                        </div>
+
+                        <button @click="generatePDF" class="w-full bg-gray-900 text-white font-bold py-3 rounded-lg mb-2"><i class="fa-solid fa-file-pdf mr-2"></i>下載票券 (含 QR Code)</button>
+                        <button @click="showSuccessModal = false" class="w-full bg-gray-100 text-gray-600 font-bold py-3 rounded-lg hover:bg-gray-200">關閉視窗</button>
                     </div>
                 </div>
             </div>
         </transition>
+
     </main>
 </div>
 
 <script>
     const { createApp, ref, computed, onMounted, reactive, watch, onUnmounted } = Vue;
-    // ★★★ 設定區 ★★★
-    const CONFIG = { scriptUrl: 'https://script.google.com/macros/s/AKfycbxwOpyYxExvKiCiOsOSFmyNDH_aDgLgqQ_B8zbhfogu4S5osm_QovqvpDFNnPWY8NQ_/exec' };
+
+    // ==========================================
+    // ★★★ CONFIGURATION 設定區 ★★★
+    // ==========================================
+    const CONFIG = {
+        scriptUrl: 'https://script.google.com/macros/s/AKfycbxwOpyYxExvKiCiOsOSFmyNDH_aDgLgqQ_B8zbhfogu4S5osm_QovqvpDFNnPWY8NQ_/exec', // 請填入 Google Apps Script 網址
+    };
 
     createApp({
         setup() {
-            // ... (Vue 邏輯與 v2.6.0 大致相同，僅新增費用顯示邏輯)
-            // 為了節省篇幅，請直接沿用 v2.6.0 的 setup() 內容，
-            // 唯一要注意的是 fetchCamps 回來的資料現在多了 price 和 minSlots，前端 template 已經自動處理了。
-            
-            // 以下是完整的 setup 供您複製貼上：
+            // --- State Variables ---
             const currentView = ref('student');
             const isGlobalLoading = ref(true); 
             const showSuccessModal = ref(false);
@@ -214,11 +343,14 @@
             const showCampQR = ref(false);
             const selectedCampForQR = ref('');
             const phoneError = ref('');
+            
+            // Check-in Mode State
             const isCheckinMode = ref(false);
             const targetCampName = ref('');
             const checkinPhone = ref('');
             const checkinResult = ref(null);
             
+            // Data
             const camps = ref([]);
             const students = ref([]);
             const form = reactive({ studentName: '', parentName: '', phone: '', email: '', choices: [''] });
@@ -228,7 +360,9 @@
             const isExpired = ref(false);
             let timerInterval = null;
 
+            // --- Lifecycle & Init ---
             onMounted(() => {
+                // URL Params Check for Self Check-in
                 const urlParams = new URLSearchParams(window.location.search);
                 if (urlParams.get('mode') === 'checkin' && urlParams.get('camp')) {
                     isCheckinMode.value = true;
@@ -236,14 +370,10 @@
                 }
                 fetchCamps();
             });
+            
+            onUnmounted(() => { if(timerInterval) clearInterval(timerInterval); });
 
-            const updateTimer = () => {
-                if(!deadlineDate.value) return;
-                const distance = new Date(deadlineDate.value).getTime() - new Date().getTime();
-                if (distance < 0) isExpired.value = true;
-                else { timer.days = Math.floor(distance / 86400000); timer.hours = Math.floor((distance % 86400000) / 3600000); timer.minutes = Math.floor((distance % 3600000) / 60000); timer.seconds = Math.floor((distance % 60000) / 1000); }
-            };
-
+            // --- Fetch Data ---
             const fetchCamps = () => {
                 isGlobalLoading.value = true;
                 fetch(CONFIG.scriptUrl)
@@ -253,66 +383,120 @@
                         camps.value = data.camps;
                         deadlineDate.value = data.deadline;
                         updateTimer();
-                        timerInterval = setInterval(updateTimer, 1000);
-                    } else alert('無法讀取設定');
+                        if(!timerInterval) timerInterval = setInterval(updateTimer, 1000);
+                    } else alert('無法讀取設定，請檢查後端網址');
                 })
+                .catch(() => alert('連線失敗'))
                 .finally(() => isGlobalLoading.value = false);
             };
 
-            const submitSelfCheckin = () => {
-                isSubmitting.value = true;
-                fetch(CONFIG.scriptUrl, { method: 'POST', body: JSON.stringify({ action: 'self_checkin', campName: targetCampName.value, phone: checkinPhone.value }) })
-                .then(res => res.json()).then(data => { checkinResult.value = { success: data.result === 'success', message: data.message }; })
-                .catch(() => { checkinResult.value = { success: false, message: "連線失敗" }; })
-                .finally(() => isSubmitting.value = false);
+            const updateTimer = () => {
+                if(!deadlineDate.value) return;
+                const distance = new Date(deadlineDate.value).getTime() - new Date().getTime();
+                if (distance < 0) isExpired.value = true;
+                else { timer.days = Math.floor(distance / 86400000); timer.hours = Math.floor((distance % 86400000) / 3600000); timer.minutes = Math.floor((distance % 3600000) / 60000); timer.seconds = Math.floor((distance % 60000) / 1000); }
             };
-            const resetCheckin = () => { checkinResult.value = null; checkinPhone.value = ''; };
 
-            const openCampQR = (campName) => { selectedCampForQR.value = campName; showCampQR.value = true; };
-            const generateVenueQR = (campName) => { return `https://quickchart.io/qr?text=${encodeURIComponent(window.location.href.split('?')[0] + '?mode=checkin&camp=' + encodeURIComponent(campName))}&size=300`; };
-
+            // --- Actions: Register ---
             const validatePhone = () => { const r = /^09\d{8}$/; phoneError.value = (form.phone && !r.test(form.phone)) ? '格式錯誤' : ''; };
             watch(() => form.phone, validatePhone);
             const isFormValid = computed(() => form.studentName && form.parentName && form.email && form.phone && !phoneError.value && form.choices[0]);
-            
-            const startScanner = () => { showScanner.value = true; setTimeout(() => { new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }).render(onScanSuccess); }, 100); };
-            const closeScanner = () => { showScanner.value = false; location.reload(); };
-            const onScanSuccess = (decodedText) => { if(confirm(`掃到 ID: ${decodedText}\n要簽到嗎？`)) { const c = prompt("輸入營隊名稱："); if(c) fetch(CONFIG.scriptUrl, { method: 'POST', body: JSON.stringify({ action: 'checkin', password: adminPassword.value, studentId: decodedText, campName: c }) }).then(r=>r.json()).then(d=>alert(d.message)); } };
-
-            const colors = ['bg-gradient-to-br from-indigo-500 to-purple-600', 'bg-gradient-to-br from-green-500 to-teal-600', 'bg-gradient-to-br from-blue-500 to-cyan-600', 'bg-gradient-to-br from-orange-400 to-red-500'];
-            const icons = ['fa-robot', 'fa-tree', 'fa-code', 'fa-utensils'];
-            const getAutoColor = (i) => colors[i % colors.length];
-            const getAutoIcon = (i) => icons[i % icons.length];
-            const addChoice = () => { if(form.choices.length < camps.value.length) form.choices.push(''); };
-            const removeChoice = (idx) => form.choices.splice(idx, 1);
-            const isSelected = (id, idx) => form.choices.some((c, i) => i !== idx && c === id);
-            const hasWaitlistChoice = computed(() => form.choices.some(id => { const c = camps.value.find(x=>x.id===id); return c && c.slots<=0; }));
-            const filteredStudents = computed(() => students.value.filter(s => s.name.includes(searchQuery.value) || s.email.includes(searchQuery.value) || String(s.phone).includes(searchQuery.value)));
-            const searchQuery = ref('');
             const lastSubmittedStudent = ref(null);
 
             const submitRegistration = () => {
                 isSubmitting.value = true;
                 const payload = { action: 'register', studentName: form.studentName, parentName: form.parentName, email: form.email, phone: form.phone, choices: form.choices };
                 fetch(CONFIG.scriptUrl, { method: 'POST', body: JSON.stringify(payload), mode: 'no-cors', headers: { 'Content-Type': 'text/plain' } })
-                .then(() => { lastSubmittedStudent.value = payload; form.studentName=''; form.parentName=''; form.email=''; form.phone=''; form.choices=['']; showSuccessModal.value = true; })
+                .then(() => { 
+                    lastSubmittedStudent.value = payload; 
+                    form.studentName=''; form.parentName=''; form.email=''; form.phone=''; form.choices=['']; 
+                    showSuccessModal.value = true; 
+                })
                 .finally(() => isSubmitting.value = false);
             };
 
+            // --- Actions: Self Check-in ---
+            const submitSelfCheckin = () => {
+                isSubmitting.value = true;
+                fetch(CONFIG.scriptUrl, { method: 'POST', body: JSON.stringify({ action: 'self_checkin', campName: targetCampName.value, phone: checkinPhone.value }) })
+                .then(res => res.json())
+                .then(data => { checkinResult.value = { success: data.result === 'success', message: data.message }; })
+                .catch(() => { checkinResult.value = { success: false, message: "連線失敗" }; })
+                .finally(() => isSubmitting.value = false);
+            };
+            const resetCheckin = () => { checkinResult.value = null; checkinPhone.value = ''; };
+
+            // --- Actions: Admin ---
             const checkAdminAccess = () => {
                 if(currentView.value === 'admin') { currentView.value = 'student'; students.value = []; return; }
-                const pwd = prompt("密碼：");
-                if(pwd) { adminPassword.value = pwd; isAdminLoading.value = true; currentView.value = 'admin'; fetch(CONFIG.scriptUrl, { method: 'POST', body: JSON.stringify({ action: 'login', password: pwd }) }).then(res => res.json()).then(d => { if(d.result==='success') students.value=d.data; else { alert('密碼錯誤'); currentView.value='student'; } }).finally(() => isAdminLoading.value = false); }
+                const pwd = prompt("請輸入管理員密碼：");
+                if(pwd) {
+                    adminPassword.value = pwd; 
+                    isAdminLoading.value = true; currentView.value = 'admin';
+                    fetch(CONFIG.scriptUrl, { method: 'POST', body: JSON.stringify({ action: 'login', password: pwd }) })
+                    .then(res => res.json()).then(d => { if(d.result==='success') students.value=d.data; else { alert('密碼錯誤'); currentView.value='student'; } })
+                    .finally(() => isAdminLoading.value = false);
+                }
             };
 
-            const generatePDF = () => { html2canvas(document.getElementById('ticket-content'), { scale: 2, useCORS: true }).then(canvas => { const img = canvas.toDataURL('image/png'); const pdf = new window.jspdf.jsPDF({ orientation: 'p', unit: 'mm', format: 'a5' }); pdf.addImage(img, 'PNG', 0, 10, pdf.internal.pageSize.getWidth(), (canvas.height * pdf.internal.pageSize.getWidth()) / canvas.width); pdf.save(`Ticket_${lastSubmittedStudent.value.studentName}.pdf`); }); };
-            const exportCSV = () => { let csv = "\uFEFF學生,Email,電話,志願\n"; students.value.forEach(s => csv += `${s.name},${s.email},${s.phone},${s.choices.join('->')}\n`); const a = document.createElement("a"); a.href = encodeURI("data:text/csv;charset=utf-8," + csv); a.download = "data.csv"; a.click(); };
+            // --- QR Code Scanner ---
+            let html5QrcodeScanner = null;
+            const startScanner = () => {
+                showScanner.value = true;
+                setTimeout(() => { 
+                    html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+                    html5QrcodeScanner.render(onScanSuccess); 
+                }, 100);
+            };
+            const closeScanner = () => { if(html5QrcodeScanner) html5QrcodeScanner.clear(); showScanner.value = false; };
+            const onScanSuccess = (decodedText) => {
+                html5QrcodeScanner.pause();
+                if(confirm(`掃到 ID: ${decodedText}\n要簽到嗎？`)) {
+                    const c = prompt("請輸入營隊名稱：");
+                    if(c) {
+                        fetch(CONFIG.scriptUrl, { method: 'POST', body: JSON.stringify({ action: 'checkin', password: adminPassword.value, studentId: decodedText, campName: c }) })
+                        .then(r=>r.json()).then(d => { alert(d.message); html5QrcodeScanner.resume(); });
+                    } else html5QrcodeScanner.resume();
+                } else html5QrcodeScanner.resume();
+            };
 
-            onMounted(() => { if(!timerInterval) timerInterval = setInterval(updateTimer, 1000); });
-            onUnmounted(() => clearInterval(timerInterval));
+            // --- Venue QR ---
+            const openCampQR = (campName) => { selectedCampForQR.value = campName; showCampQR.value = true; };
+            const generateVenueQR = (campName) => {
+                const baseUrl = window.location.href.split('?')[0];
+                const fullUrl = `${baseUrl}?mode=checkin&camp=${encodeURIComponent(campName)}`;
+                return `https://quickchart.io/qr?text=${encodeURIComponent(fullUrl)}&size=300`;
+            };
+
+            // --- Utilities ---
+            const colors = ['bg-gradient-to-br from-indigo-500 to-purple-600', 'bg-gradient-to-br from-green-500 to-teal-600', 'bg-gradient-to-br from-blue-500 to-cyan-600', 'bg-gradient-to-br from-orange-400 to-red-500', 'bg-gradient-to-br from-pink-500 to-rose-500'];
+            const icons = ['fa-robot', 'fa-tree', 'fa-code', 'fa-utensils', 'fa-music'];
+            const getAutoColor = (i) => colors[i % colors.length];
+            const getAutoIcon = (i) => icons[i % icons.length];
+            const addChoice = () => { if(form.choices.length < camps.value.length) form.choices.push(''); };
+            const removeChoice = (idx) => form.choices.splice(idx, 1);
+            const isSelected = (id, idx) => form.choices.some((c, i) => i !== idx && c === id);
+            const getCampName = (id) => { const c = camps.value.find(x => x.id === id); return c ? c.name : id; };
+            const formatGASDate = (d) => { try { return new Date(d).toLocaleString(); } catch(e) { return d; } };
+            const hasWaitlistChoice = computed(() => form.choices.some(id => { const c = camps.value.find(x=>x.id===id); return c && c.slots<=0; }));
+            const filteredStudents = computed(() => students.value.filter(s => s.name.includes(searchQuery.value) || s.email.includes(searchQuery.value) || String(s.phone).includes(searchQuery.value)));
+            
+            const generatePDF = () => {
+                html2canvas(document.getElementById('ticket-content'), { scale: 2, useCORS: true }).then(canvas => {
+                    const img = canvas.toDataURL('image/png');
+                    const pdf = new window.jspdf.jsPDF({ orientation: 'p', unit: 'mm', format: 'a5' });
+                    pdf.addImage(img, 'PNG', 0, 10, pdf.internal.pageSize.getWidth(), (canvas.height * pdf.internal.pageSize.getWidth()) / canvas.width);
+                    pdf.save(`Ticket_${lastSubmittedStudent.value.studentName}.pdf`);
+                });
+            };
+            const exportCSV = () => {
+                let csv = "\uFEFF學生,Email,電話,志願\n";
+                students.value.forEach(s => csv += `${s.name},${s.email},${s.phone},${s.choices.map(c=>getCampName(c)).join('->')}\n`);
+                const a = document.createElement("a"); a.href = encodeURI("data:text/csv;charset=utf-8," + csv); a.download = "data.csv"; a.click();
+            };
 
             return {
-                currentView, isGlobalLoading, camps, form, students, showSuccessModal, isSubmitting, isAdminLoading, phoneError,
+                CONFIG, currentView, isGlobalLoading, camps, form, students, showSuccessModal, isSubmitting, isAdminLoading, phoneError,
                 timer, isExpired, isFormValid, getAutoColor, getAutoIcon, filteredStudents, searchQuery, deadlineDate, hasWaitlistChoice, showScanner, showCampQR, selectedCampForQR,
                 isCheckinMode, targetCampName, checkinPhone, checkinResult,
                 addChoice, removeChoice, isSelected, submitRegistration, checkAdminAccess, switchToStudent: ()=>currentView.value='student',
