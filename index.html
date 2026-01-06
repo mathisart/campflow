@@ -3,41 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CampFlow 營隊報名系統 v1.7.0 (資安強化版)</title>
+    <title>CampFlow 營隊報名系統 v2.0.0 (雲端動態版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    
     <script>
         tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#f0fdf4',
-                            100: '#dcfce7',
-                            500: '#22c55e',
-                            600: '#16a34a',
-                            800: '#166534',
-                        }
-                    },
-                    animation: {
-                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                    }
-                }
-            }
-        }
+            theme: { extend: { colors: { brand: { 50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 600: '#16a34a', 800: '#166534' } }, animation: { 'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' } } }
     </script>
     <style>
         body { font-family: 'Segoe UI', Microsoft JhengHei, sans-serif; }
         .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
         .fade-enter-from, .fade-leave-to { opacity: 0; }
-        .modal-enter-active, .modal-leave-active { transition: all 0.3s ease; }
-        .modal-enter-from, .modal-leave-to { opacity: 0; transform: scale(0.9); }
-        .input-error { border-color: #ef4444 !important; background-color: #fef2f2 !important; }
-        .input-success { border-color: #22c55e !important; background-color: #f0fdf4 !important; }
+        .list-enter-active, .list-leave-active { transition: all 0.4s ease; }
+        .list-enter-from, .list-leave-to { opacity: 0; transform: translateY(-10px); }
         .ticket-visual {
             background-image: radial-gradient(circle at 0 50%, transparent 10px, white 11px), 
                               radial-gradient(circle at 100% 50%, transparent 10px, white 11px);
@@ -60,9 +41,7 @@
             <span class="font-mono text-lg bg-red-700 px-2 rounded">{{ timer.minutes }}</span> 分
             <span class="font-mono text-lg bg-red-700 px-2 rounded">{{ timer.seconds }}</span> 秒
         </div>
-        <div v-else class="flex items-center gap-2">
-            <i class="fa-solid fa-lock"></i> 報名已截止
-        </div>
+        <div v-else class="flex items-center gap-2"><i class="fa-solid fa-lock"></i> 報名已截止</div>
     </div>
 
     <header class="bg-white shadow-sm border-b border-gray-200 sticky top-[40px] z-50 transition-all">
@@ -71,18 +50,13 @@
                 <img src="https://tjjh.tc.edu.tw/var/file/126/1126/msys_1126_7604592_06998.png" alt="校徽" class="h-12 w-auto mr-2 object-contain">
                 <div>
                     <h1 class="text-xl font-bold text-gray-800 tracking-wide">CampFlow</h1>
-                    <p class="text-xs text-gray-500">智慧營隊志願序報名系統 <span class="bg-indigo-600 text-white px-1 rounded">v1.7.0 資安強化版</span></p>
+                    <p class="text-xs text-gray-500">智慧營隊志願序報名系統 <span class="bg-orange-500 text-white px-1 rounded">v2.0 雲端版</span></p>
                 </div>
             </div>
             <nav class="flex gap-2">
-                <button @click="switchToStudent" 
-                    :class="['px-4 py-2 rounded-lg text-sm font-medium transition', currentView === 'student' ? 'bg-brand-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100']">
-                    <i class="fa-solid fa-user-pen mr-1"></i> 學生報名
-                </button>
-                <button @click="checkAdminAccess" 
-                    :class="['px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1', currentView === 'admin' ? 'bg-gray-800 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100']">
-                    <i :class="currentView === 'admin' ? 'fa-solid fa-right-from-bracket' : 'fa-solid fa-lock'"></i>
-                    {{ currentView === 'admin' ? '登出後台' : '後台管理' }}
+                <button @click="switchToStudent" :class="['px-4 py-2 rounded-lg text-sm font-medium transition', currentView === 'student' ? 'bg-brand-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100']"><i class="fa-solid fa-user-pen mr-1"></i> 報名</button>
+                <button @click="checkAdminAccess" :class="['px-4 py-2 rounded-lg text-sm font-medium transition', currentView === 'admin' ? 'bg-gray-800 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100']">
+                    <i :class="currentView === 'admin' ? 'fa-solid fa-right-from-bracket' : 'fa-solid fa-lock'"></i> {{ currentView === 'admin' ? '登出' : '後台' }}
                 </button>
             </nav>
         </div>
@@ -90,12 +64,26 @@
 
     <main class="flex-grow max-w-6xl mx-auto px-4 py-6 w-full">
         
+        <div v-if="isGlobalLoading" class="text-center py-24">
+            <i class="fa-solid fa-circle-notch fa-spin text-5xl text-brand-500 mb-4"></i>
+            <h2 class="text-xl font-bold text-gray-700">正在讀取最新營隊資訊...</h2>
+            <p class="text-gray-400 text-sm mt-2">Connecting to Camp Database</p>
+        </div>
+
         <transition name="fade" mode="out-in">
-            <div v-if="currentView === 'student'" key="student" class="space-y-8">
+            <div v-if="!isGlobalLoading && currentView === 'student'" key="student" class="space-y-8">
+                
+                <div v-if="camps.length === 0" class="text-center p-10 bg-white rounded-xl shadow">
+                    <i class="fa-solid fa-box-open text-4xl text-gray-300 mb-2"></i>
+                    <p>目前沒有開放的營隊</p>
+                </div>
+
                 <section class="grid md:grid-cols-3 gap-6">
-                    <div v-for="camp in camps" :key="camp.id" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition group">
+                    <div v-for="(camp, idx) in camps" :key="camp.id" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition group">
                         <div class="h-32 bg-gray-200 relative overflow-hidden">
-                            <div :class="['absolute inset-0 flex items-center justify-center text-4xl text-white opacity-80', camp.color]"><i :class="camp.icon"></i></div>
+                            <div :class="['absolute inset-0 flex items-center justify-center text-4xl text-white opacity-80', getAutoColor(idx)]">
+                                <i :class="['fa-solid', getAutoIcon(idx)]"></i>
+                            </div>
                             <div class="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded text-xs font-bold shadow">
                                 <span :class="camp.slots < 5 ? 'text-red-500 animate-pulse' : 'text-green-600'">剩餘 {{ camp.slots }} 名額</span>
                             </div>
@@ -105,150 +93,79 @@
                             <p class="text-gray-500 text-sm mb-3 h-10 overflow-hidden">{{ camp.desc }}</p>
                             <div class="flex justify-between items-center text-xs text-gray-400">
                                 <span><i class="fa-regular fa-calendar mr-1"></i>{{ camp.date }}</span>
-                                <span><i class="fa-solid fa-user-group mr-1"></i>限額: {{ camp.totalSlots }}</span>
+                                <span><i class="fa-solid fa-user-group mr-1"></i>總額: {{ camp.totalSlots }}</span>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                <section class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden max-w-3xl mx-auto relative">
-                    <div v-if="isExpired" class="absolute inset-0 bg-gray-100/80 z-10 flex flex-col items-center justify-center text-gray-500">
-                        <i class="fa-solid fa-calendar-xmark text-6xl mb-4"></i>
-                        <h2 class="text-2xl font-bold">抱歉，報名已截止</h2>
-                        <p>請關注下次活動公告</p>
-                    </div>
+                <section v-if="camps.length > 0" class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden max-w-3xl mx-auto relative">
+                    <div v-if="isExpired" class="absolute inset-0 bg-gray-100/80 z-10 flex flex-col items-center justify-center text-gray-500"><i class="fa-solid fa-calendar-xmark text-6xl mb-4"></i><h2 class="text-2xl font-bold">抱歉，報名已截止</h2></div>
                     <div class="bg-brand-50 p-4 border-b border-brand-100 flex items-center gap-3">
                         <div class="w-8 h-8 rounded-full bg-brand-200 flex items-center justify-center text-brand-700"><i class="fa-solid fa-pencil"></i></div>
                         <h2 class="font-bold text-brand-800">填寫報名志願序</h2>
                     </div>
                     <form @submit.prevent="submitRegistration" class="p-6 space-y-6">
                         <div class="grid md:grid-cols-2 gap-6">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">學生姓名 <span class="text-red-500">*</span></label>
-                                <input v-model="form.name" type="text" placeholder="請輸入真實姓名" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 outline-none transition">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">聯絡電話 <span class="text-red-500">*</span></label>
-                                <input v-model="form.phone" type="tel" placeholder="09xxxxxxxx" maxlength="10" @input="validatePhone"
-                                    :class="['w-full px-4 py-2 rounded-lg border outline-none transition', phoneError ? 'input-error focus:ring-red-500' : (form.phone.length > 0 ? 'input-success focus:ring-brand-500' : 'border-gray-300 focus:ring-brand-500')]">
-                                <p v-if="phoneError" class="text-red-500 text-xs mt-1"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ phoneError }}</p>
-                            </div>
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">學生姓名 *</label><input v-model="form.studentName" type="text" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 outline-none"></div>
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">家長姓名 *</label><input v-model="form.parentName" type="text" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 outline-none"></div>
+                            <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">家長聯絡電話 *</label><input v-model="form.phone" type="tel" maxlength="10" @input="validatePhone" :class="['w-full px-4 py-2 rounded-lg border outline-none', phoneError ? 'input-error' : 'border-gray-300']"><p v-if="phoneError" class="text-red-500 text-xs mt-1">{{ phoneError }}</p></div>
                         </div>
                         <hr class="border-gray-100">
                         <div class="space-y-4">
-                            <div class="flex items-center gap-3" v-for="(choice, idx) in 3" :key="idx">
-                                <span :class="['w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0', idx===0?'bg-red-100 text-red-600':(idx===1?'bg-orange-100 text-orange-600':'bg-yellow-100 text-yellow-600')]">{{ idx+1 }}</span>
-                                <div class="flex-grow">
-                                    <select v-model="form.choices[idx]" :required="idx===0" 
-                                        :class="['w-full px-4 py-2 rounded-lg border outline-none bg-white', idx===0?'border-gray-300 focus:ring-2 focus:ring-red-500':'border-gray-300 focus:ring-2 focus:ring-yellow-500']">
-                                        <option value="" :disabled="idx===0">{{ idx===0 ? '請選擇第一志願 (必填)' : (idx===1 ? '第二志願 (選填)' : '第三志願 (選填)') }}</option>
-                                        <option v-for="camp in camps" :key="camp.id" :value="camp.id" :disabled="isSelected(camp.id, idx)">{{ camp.name }}</option>
-                                    </select>
+                            <transition-group name="list" tag="div" class="space-y-3">
+                                <div v-for="(choice, idx) in form.choices" :key="idx" class="flex items-center gap-3">
+                                    <span class="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm shrink-0">{{ idx+1 }}</span>
+                                    <div class="flex-grow flex gap-2">
+                                        <select v-model="form.choices[idx]" required class="flex-grow px-4 py-2 rounded-lg border border-gray-300 outline-none bg-white">
+                                            <option value="" disabled>請選擇第 {{ idx+1 }} 志願</option>
+                                            <option v-for="camp in camps" :key="camp.id" :value="camp.id" :disabled="isSelected(camp.id, idx)">{{ camp.name }}</option>
+                                        </select>
+                                        <button v-if="form.choices.length > 1" @click="removeChoice(idx)" type="button" class="text-red-400 hover:text-red-600 px-2"><i class="fa-solid fa-trash-can"></i></button>
+                                    </div>
                                 </div>
-                            </div>
+                            </transition-group>
+                            <button v-if="form.choices.length < camps.length" @click="addChoice" type="button" class="text-sm text-brand-600 font-bold hover:text-brand-800 flex items-center gap-1 mt-2"><i class="fa-solid fa-circle-plus"></i> 新增下一個志願</button>
                         </div>
-                        <button type="submit" :disabled="!isFormValid || isExpired || isSubmitting" 
-                            :class="['w-full font-bold py-3 rounded-xl shadow-lg transition transform flex items-center justify-center gap-2', 
-                                (!isFormValid || isExpired || isSubmitting) ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none' : 'bg-brand-600 hover:bg-brand-700 text-white active:scale-95 cursor-pointer']">
+                        <button type="submit" :disabled="!isFormValid || isExpired || isSubmitting" :class="['w-full font-bold py-3 rounded-xl shadow-lg transition transform', (!isFormValid || isExpired || isSubmitting) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-brand-600 hover:bg-brand-700 text-white active:scale-95']">
                             <span v-if="isSubmitting"><i class="fa-solid fa-circle-notch fa-spin"></i> 處理中...</span>
-                            <span v-else-if="isExpired">已截止報名</span>
                             <span v-else>提交報名表</span>
-                            <i v-if="!isExpired && !isSubmitting" class="fa-solid fa-paper-plane"></i>
                         </button>
                     </form>
                 </section>
             </div>
 
-            <div v-else-if="currentView === 'admin'" key="admin" class="space-y-6">
-                
-                <div v-if="isAdminLoading" class="text-center py-20 text-gray-500">
-                    <i class="fa-solid fa-circle-notch fa-spin text-4xl mb-4 text-brand-600"></i>
-                    <p>正在從雲端安全載入資料...</p>
-                </div>
-
+            <div v-else-if="!isGlobalLoading && currentView === 'admin'" key="admin" class="space-y-6">
+                <div v-if="isAdminLoading" class="text-center py-20"><i class="fa-solid fa-circle-notch fa-spin text-4xl text-brand-600"></i><p>載入中...</p></div>
                 <div v-else class="space-y-6">
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                            <div class="text-gray-500 text-xs uppercase font-bold tracking-wider">總報名人數 (雲端)</div>
-                            <div class="text-3xl font-bold text-gray-800 mt-1">{{ students.length }}</div>
-                        </div>
-                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                            <div class="text-gray-500 text-xs uppercase font-bold tracking-wider">剩餘總名額</div>
-                            <div class="text-3xl font-bold text-brand-600 mt-1">{{ totalRemainingSlots }}</div>
-                        </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between">
+                        <div><div class="text-gray-500 text-xs font-bold">總報名</div><div class="text-3xl font-bold">{{ students.length }}</div></div>
+                        <button @click="exportCSV" class="bg-blue-50 text-blue-600 px-4 py-2 rounded font-bold">匯出 CSV</button>
                     </div>
-
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div class="p-4 border-b border-gray-100 bg-gray-50 space-y-4 md:space-y-0 md:flex md:justify-between md:items-center">
-                            <h3 class="font-bold text-gray-800">學生報名資料庫</h3>
-                            <div class="flex flex-col md:flex-row gap-3">
-                                <div class="relative">
-                                    <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs"></i>
-                                    <input v-model="searchQuery" type="text" placeholder="搜尋姓名或電話..." class="pl-8 pr-4 py-1.5 text-sm border border-gray-300 rounded-lg outline-none focus:border-brand-500">
-                                </div>
-                                <select v-model="filterCamp" class="pl-2 pr-8 py-1.5 text-sm border border-gray-300 rounded-lg outline-none focus:border-brand-500 bg-white">
-                                    <option value="">所有營隊</option>
-                                    <option v-for="camp in camps" :key="camp.id" :value="camp.id">{{ camp.name }}</option>
-                                </select>
-                                <button @click="exportCSV" class="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition"><i class="fa-solid fa-download mr-1"></i>CSV</button>
-                            </div>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm text-left text-gray-500">
-                                <thead class="text-xs text-gray-700 uppercase bg-gray-100">
-                                    <tr>
-                                        <th class="px-6 py-3">姓名</th>
-                                        <th class="px-6 py-3">電話</th>
-                                        <th class="px-6 py-3">第1志願</th>
-                                        <th class="px-6 py-3">第2志願</th>
-                                        <th class="px-6 py-3">時間</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-if="filteredStudents.length === 0">
-                                        <td colspan="5" class="px-6 py-8 text-center text-gray-400">尚無資料</td>
-                                    </tr>
-                                    <tr v-for="(student, index) in filteredStudents" :key="index" class="bg-white border-b hover:bg-gray-50">
-                                        <td class="px-6 py-4 font-medium text-gray-900">{{ student.name }}</td>
-                                        <td class="px-6 py-4">{{ student.phone }}</td>
-                                        <td class="px-6 py-4"><span class="bg-brand-50 text-brand-700 px-2 py-1 rounded text-xs font-bold">{{ getCampName(student.choices[0]) }}</span></td>
-                                        <td class="px-6 py-4 text-gray-500">{{ getCampName(student.choices[1]) || '-' }}</td>
-                                        <td class="px-6 py-4 text-xs text-gray-400">{{ formatGASDate(student.timestamp) }}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                    <div class="bg-white rounded-xl shadow overflow-hidden">
+                        <table class="w-full text-sm text-left text-gray-500">
+                            <thead class="bg-gray-100 text-xs uppercase"><tr><th class="px-4 py-3">學生</th><th class="px-4 py-3">家長</th><th class="px-4 py-3">電話</th><th class="px-4 py-3">志願</th></tr></thead>
+                            <tbody>
+                                <tr v-for="(s, i) in students" :key="i" class="border-b bg-white">
+                                    <td class="px-4 py-3 font-bold">{{ s.name }}</td><td class="px-4 py-3">{{ s.parent }}</td><td class="px-4 py-3">{{ s.phone }}</td>
+                                    <td class="px-4 py-3"><span v-for="c in s.choices" class="mr-1 bg-gray-100 px-1 rounded">{{ getCampName(c) }}</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </transition>
 
     </main>
-
+    
     <transition name="modal">
         <div v-if="showSuccessModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden transform transition-all">
-                <div class="bg-brand-600 p-4 text-white text-center">
-                    <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-2 text-2xl"><i class="fa-solid fa-check"></i></div>
-                    <h3 class="font-bold text-lg">報名成功！</h3>
-                    <p class="text-brand-100 text-sm">資料已成功寫入雲端資料庫</p>
-                </div>
-                <div class="p-6">
-                    <div id="ticket-content" class="bg-white border-2 border-dashed border-gray-300 rounded-xl p-4 mb-6 ticket-visual relative">
-                        <div class="text-center mb-3"><img src="https://tjjh.tc.edu.tw/var/file/126/1126/msys_1126_7604592_06998.png" alt="校徽" class="h-16 mx-auto object-contain"></div>
-                        <div class="text-center mb-4"><h4 class="font-bold text-xl text-brand-600 tracking-wider">CAMP TICKET</h4><p class="text-xs text-gray-400 uppercase">CampFlow Admission</p></div>
-                        <div class="space-y-3 text-sm">
-                            <div class="flex justify-between border-b border-gray-100 pb-1"><span class="text-gray-500">學員姓名</span><span class="font-bold">{{ lastSubmittedStudent?.name }}</span></div>
-                            <div class="flex justify-between border-b border-gray-100 pb-1"><span class="text-gray-500">第一志願</span><span class="font-bold text-brand-600">{{ getCampName(lastSubmittedStudent?.choices[0]) }}</span></div>
-                            <div class="flex justify-between border-b border-gray-100 pb-1"><span class="text-gray-500">報名序號</span><span class="font-mono text-gray-600">#LIVE</span></div>
-                            <div class="flex justify-between"><span class="text-gray-500">日期</span><span class="text-gray-600 text-xs">{{ lastSubmittedStudent?.timestamp }}</span></div>
-                        </div>
-                        <div class="mt-4 h-8 bg-gray-800 w-full opacity-80" style="mask-image: repeating-linear-gradient(90deg, black, black 2px, transparent 2px, transparent 4px);"></div>
-                    </div>
-                    <div class="flex flex-col gap-3">
-                        <button @click="generatePDF" class="w-full bg-gray-900 hover:bg-gray-800 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition"><i class="fa-solid fa-file-pdf"></i> 下載 PDF 確認單</button>
-                        <button @click="showSuccessModal = false" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-3 rounded-lg transition">關閉視窗</button>
-                    </div>
+            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+                <div class="bg-brand-600 p-4 text-white text-center"><h3 class="font-bold text-lg">報名成功！</h3></div>
+                <div class="p-6 text-center">
+                    <p class="mb-4">您的志願序已送出</p>
+                    <button @click="showSuccessModal = false" class="w-full bg-gray-100 text-gray-600 font-bold py-3 rounded-lg">關閉</button>
                 </div>
             </div>
         </div>
@@ -259,193 +176,99 @@
 <script>
     const { createApp, ref, computed, onMounted, reactive, watch, onUnmounted } = Vue;
 
-    // ==========================================
-    // 請確認下方網址是否正確
-    // ==========================================
-    const GOOGLE_SCRIPT_URL = '您的_APPS_SCRIPT_網址_貼在這裡'; 
+    // ★★★ 設定區 ★★★
+    const CONFIG = {
+        scriptUrl: '您的_APPS_SCRIPT_網址_貼在這裡', // 請填入
+        deadlineDate: '2026-02-01 23:59:59'
+    };
 
     createApp({
         setup() {
             const currentView = ref('student');
+            const isGlobalLoading = ref(true); // Initial loading
             const showSuccessModal = ref(false);
-            const isSubmitting = ref(false); 
-            const isAdminLoading = ref(false); // [v1.7] Admin Loading State
+            const isSubmitting = ref(false);
+            const isAdminLoading = ref(false);
             const phoneError = ref('');
-            const searchQuery = ref('');
-            const filterCamp = ref('');
-            const lastSubmittedStudent = ref(null);
             
-            // [v1.7] Empty initial data (Secure)
-            const students = ref([]); 
+            const camps = ref([]); // Now empty, fetched from GAS
+            const students = ref([]);
+            const form = reactive({ studentName: '', parentName: '', phone: '', choices: [''] });
 
             // Timer
-            const deadline = ref(new Date().getTime() + 3 * 24 * 60 * 60 * 1000); 
             const timer = reactive({ days: 0, hours: 0, minutes: 0, seconds: 0 });
             const isExpired = ref(false);
             let timerInterval = null;
-
             const updateTimer = () => {
-                const now = new Date().getTime();
-                const distance = deadline.value - now;
-                if (distance < 0) { isExpired.value = true; clearInterval(timerInterval); timer.days=0; timer.hours=0; timer.minutes=0; timer.seconds=0; }
-                else { timer.days = Math.floor(distance / (86400000)); timer.hours = Math.floor((distance % (86400000)) / (3600000)); timer.minutes = Math.floor((distance % (3600000)) / (60000)); timer.seconds = Math.floor((distance % (60000)) / 1000); }
+                const distance = new Date(CONFIG.deadlineDate).getTime() - new Date().getTime();
+                if (distance < 0) isExpired.value = true;
+                else { timer.days = Math.floor(distance / 86400000); timer.hours = Math.floor((distance % 86400000) / 3600000); timer.minutes = Math.floor((distance % 3600000) / 60000); timer.seconds = Math.floor((distance % 60000) / 1000); }
             };
 
-            const camps = reactive([
-                { id: 'c1', name: 'AI 機器人創客營', desc: '學習 Python 與硬體控制', date: '2026/07/15', totalSlots: 30, slots: 28, icon: 'fa-robot', color: 'bg-gradient-to-br from-indigo-500 to-purple-600' },
-                { id: 'c2', name: '山林生態探索營', desc: '探索大自然的奧秘', date: '2026/08/01', totalSlots: 25, slots: 12, icon: 'fa-tree', color: 'bg-gradient-to-br from-green-500 to-teal-600' },
-                { id: 'c3', name: '極限程式戰鬥營', desc: '高強度的演算法訓練', date: '2026/08/10', totalSlots: 40, slots: 35, icon: 'fa-code', color: 'bg-gradient-to-br from-blue-500 to-cyan-600' }
-            ]);
-            const form = reactive({ name: '', phone: '', choices: ['', '', ''] });
-
-            // [v1.7] Secure Login & Fetch Logic
-            const checkAdminAccess = () => {
-                if(currentView.value === 'admin') {
-                    currentView.value = 'student';
-                    students.value = []; // Clear data on logout
-                    return;
-                }
-
-                const password = prompt("請輸入管理員密碼：", "");
-                if (password) {
-                    fetchAdminData(password);
-                }
-            };
-
-            const fetchAdminData = (password) => {
-                isAdminLoading.value = true;
-                currentView.value = 'admin'; // Switch view immediately to show loading
-
-                fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'login', password: password }),
-                    mode: 'no-cors', // Note: no-cors limits reading response directly in some contexts, but GAS redirect handling needs care.
-                    // Actually, for reading data from GAS, we should use standard POST and handle the redirect, 
-                    // or use the text() promise.
-                    // NOTE: Due to GAS CORS/Redirect complexity, we use a specific pattern:
-                })
-                .then(res => {
-                    // With 'no-cors', we can't read the body. 
-                    // For READ operations in Vibe Coding context, let's switch to standard CORS if possible, 
-                    // OR use the redirect property.
-                    // Correction: For simplicity in this specific Vibe Coding setup, we will use the fetch normally.
-                    // If you encounter CORS issues reading data, we might need a workaround.
-                    // Let's try standard fetch first (apps script web app needs to be 'Anyone').
-                    return fetch(GOOGLE_SCRIPT_URL, {
-                        method: 'POST', 
-                        body: JSON.stringify({ action: 'login', password: password })
-                    });
-                })
+            // Fetch Camps on Mount
+            const fetchCamps = () => {
+                isGlobalLoading.value = true;
+                fetch(CONFIG.scriptUrl) // GET request
                 .then(res => res.json())
                 .then(data => {
-                    if (data.result === 'success') {
-                        students.value = data.data; // Load real data!
+                    if(data.result === 'success') {
+                        camps.value = data.camps;
                     } else {
-                        alert("密碼錯誤或存取失敗！");
-                        currentView.value = 'student';
+                        alert('無法讀取營隊資料');
                     }
                 })
-                .catch(err => {
-                    console.error(err);
-                    alert("連線失敗，請檢查網路");
-                    currentView.value = 'student';
-                })
-                .finally(() => {
-                    isAdminLoading.value = false;
-                });
+                .catch(e => console.error(e))
+                .finally(() => isGlobalLoading.value = false);
             };
 
+            // Auto Styles
+            const colors = ['bg-gradient-to-br from-indigo-500 to-purple-600', 'bg-gradient-to-br from-green-500 to-teal-600', 'bg-gradient-to-br from-blue-500 to-cyan-600', 'bg-gradient-to-br from-orange-400 to-red-500', 'bg-gradient-to-br from-pink-500 to-rose-500'];
+            const icons = ['fa-robot', 'fa-tree', 'fa-code', 'fa-utensils', 'fa-music'];
+            const getAutoColor = (i) => colors[i % colors.length];
+            const getAutoIcon = (i) => icons[i % icons.length];
+
+            // Core Logic
             const validatePhone = () => { const r = /^09\d{8}$/; phoneError.value = (form.phone && !r.test(form.phone)) ? '格式錯誤' : ''; };
             watch(() => form.phone, validatePhone);
-            const isFormValid = computed(() => form.name && form.phone && !phoneError.value && form.choices[0]);
-            
-            const filteredStudents = computed(() => {
-                return students.value.filter(s => {
-                    const q = searchQuery.value.toLowerCase();
-                    const matchQ = s.name.includes(q) || String(s.phone).includes(q);
-                    const matchC = filterCamp.value === '' || s.choices[0] === filterCamp.value;
-                    return matchQ && matchC;
-                });
-            });
-
+            const isFormValid = computed(() => form.studentName && form.parentName && form.phone && !phoneError.value && form.choices[0]);
+            const addChoice = () => { if(form.choices.length < camps.value.length) form.choices.push(''); };
+            const removeChoice = (idx) => form.choices.splice(idx, 1);
             const isSelected = (id, idx) => form.choices.some((c, i) => i !== idx && c === id);
-            const getCampName = (id) => { const c = camps.find(x => x.id === id); return c ? c.name : id; };
-            const totalRemainingSlots = computed(() => camps.reduce((a, c) => a + c.slots, 0));
-
-            // Format Google Sheet Date
-            const formatGASDate = (dateStr) => {
-                try { return new Date(dateStr).toLocaleString(); } catch(e) { return dateStr; }
-            };
+            const getCampName = (id) => { const c = camps.value.find(x => x.id === id); return c ? c.name : id; };
 
             const submitRegistration = () => {
-                if(!isFormValid.value || isExpired.value || isSubmitting.value) return;
                 isSubmitting.value = true;
-
-                const payload = {
-                    action: 'register', // [v1.7] Specify action
-                    name: form.name,
-                    phone: form.phone,
-                    choice1: getCampName(form.choices[0]),
-                    choice2: getCampName(form.choices[1]),
-                    choice3: getCampName(form.choices[2])
-                };
-
-                // Use no-cors for writing (fire and forget)
-                fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload),
-                    mode: 'no-cors', 
-                    headers: { 'Content-Type': 'text/plain' }
-                })
-                .then(() => {
-                    // Optimistic update
-                    const newStudent = { name: form.name, phone: form.phone, choices: [...form.choices], timestamp: new Date().toLocaleString() };
-                    lastSubmittedStudent.value = newStudent;
-                    const camp = camps.find(c => c.id === form.choices[0]);
-                    if(camp && camp.slots > 0) camp.slots--;
-                    form.name = ''; form.phone = ''; form.choices = ['', '', ''];
-                    showSuccessModal.value = true;
-                })
+                const payload = { action: 'register', studentName: form.studentName, parentName: form.parentName, phone: form.phone, choices: form.choices };
+                fetch(CONFIG.scriptUrl, { method: 'POST', body: JSON.stringify(payload), mode: 'no-cors', headers: { 'Content-Type': 'text/plain' } })
+                .then(() => { form.studentName=''; form.parentName=''; form.phone=''; form.choices=['']; showSuccessModal.value = true; })
                 .finally(() => isSubmitting.value = false);
             };
 
-            const switchToStudent = () => { currentView.value = 'student'; students.value = []; }; // Clear on switch
+            const checkAdminAccess = () => {
+                if(currentView.value === 'admin') { currentView.value = 'student'; return; }
+                const pwd = prompt("密碼：");
+                if(pwd) {
+                    isAdminLoading.value = true; currentView.value = 'admin';
+                    fetch(CONFIG.scriptUrl, { method: 'POST', body: JSON.stringify({ action: 'login', password: pwd }) })
+                    .then(res => res.json()).then(d => { if(d.result==='success') students.value=d.data; else { alert('密碼錯誤'); currentView.value='student'; } })
+                    .finally(() => isAdminLoading.value = false);
+                }
+            };
             
-            // ... (keep generatePDF and exportCSV same as before) ...
-            const generatePDF = () => {
-                const element = document.getElementById('ticket-content');
-                html2canvas(element, { scale: 2, useCORS: true }).then(canvas => {
-                    const imgData = canvas.toDataURL('image/png');
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a5' });
-                    const pdfWidth = pdf.internal.pageSize.getWidth();
-                    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-                    pdf.addImage(imgData, 'PNG', 0, 10, pdfWidth, pdfHeight);
-                    pdf.save(`CampFlow_Ticket_${lastSubmittedStudent.value?.name}.pdf`);
-                });
+            const exportCSV = () => {
+                let csv = "\uFEFF學生,家長,電話,志願\n";
+                students.value.forEach(s => csv += `${s.name},${s.parent},${s.phone},${s.choices.map(c=>getCampName(c)).join('->')}\n`);
+                const a = document.createElement("a"); a.href = encodeURI("data:text/csv;charset=utf-8," + csv); a.download = "data.csv"; a.click();
             };
 
-             const exportCSV = () => {
-                let csv = "\uFEFF姓名,電話,第一志願,時間\n";
-                filteredStudents.value.forEach(r => csv += `${r.name},${r.phone},${getCampName(r.choices[0])},${formatGASDate(r.timestamp)}\n`);
-                const link = document.createElement("a");
-                link.href = encodeURI("data:text/csv;charset=utf-8," + csv);
-                link.download = "camp_data.csv";
-                link.click();
-            };
-
-            onMounted(() => {
-                updateTimer();
-                timerInterval = setInterval(updateTimer, 1000);
-            });
-            onUnmounted(() => { if(timerInterval) clearInterval(timerInterval); });
+            onMounted(() => { updateTimer(); timerInterval = setInterval(updateTimer, 1000); fetchCamps(); });
+            onUnmounted(() => clearInterval(timerInterval));
 
             return {
-                currentView, camps, form, students, filteredStudents, searchQuery, filterCamp,
-                showSuccessModal, phoneError, isFormValid, lastSubmittedStudent,
-                timer, isExpired, isSubmitting, isAdminLoading,
-                validatePhone, isSelected, submitRegistration, getCampName, totalRemainingSlots,
-                exportCSV, generatePDF, checkAdminAccess, switchToStudent, formatGASDate
+                currentView, isGlobalLoading, camps, form, students, showSuccessModal, isSubmitting, isAdminLoading, phoneError,
+                timer, isExpired, isFormValid, getAutoColor, getAutoIcon,
+                addChoice, removeChoice, isSelected, submitRegistration, checkAdminAccess, switchToStudent: ()=>currentView.value='student',
+                getCampName, exportCSV
             };
         }
     }).mount('#app');
