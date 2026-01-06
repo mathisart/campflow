@@ -437,12 +437,26 @@
             // --- QR Code Scanner ---
             let html5QrcodeScanner = null;
             const startScanner = (mode) => {
-                scannerMode.value = mode; // 記錄現在是誰在掃 (admin or student)
+                scannerMode.value = mode; 
                 showScanner.value = true;
+                
+                // 增加延遲到 500毫秒 (0.5秒)，給手機一點時間準備畫面
                 setTimeout(() => { 
-                    html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-                    html5QrcodeScanner.render(onScanSuccess); 
-                }, 100);
+                    // 雙重保險：確認網頁上真的有 reader 這個格子了，才啟動相機
+                    if (document.getElementById("reader")) {
+                        // 如果已經有舊的掃描器在跑，先清除掉
+                        if (html5QrcodeScanner) {
+                            try { html5QrcodeScanner.clear(); } catch(e) {}
+                        }
+                        
+                        html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+                        html5QrcodeScanner.render(onScanSuccess); 
+                    } else {
+                        console.error("錯誤：找不到掃描視窗，請再試一次");
+                        alert("相機啟動失敗，請重新整理網頁再試一次");
+                        showScanner.value = false; // 關閉視窗避免卡住
+                    }
+                }, 500); 
             };
             const closeScanner = () => { if(html5QrcodeScanner) html5QrcodeScanner.clear(); showScanner.value = false; };
             
