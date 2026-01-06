@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CampFlow 營隊報名系統 v2.3.0 (智慧候補版)</title>
+    <title>CampFlow 營隊系統 v2.5.1 (完整整合版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
     <style>
         body { font-family: 'Segoe UI', Microsoft JhengHei, sans-serif; }
         .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
@@ -38,7 +40,7 @@
             <span class="font-mono text-lg bg-red-700 px-2 rounded">{{ timer.seconds }}</span> 秒
         </div>
         <div v-else-if="isExpired" class="flex items-center gap-2"><i class="fa-solid fa-lock"></i> 報名已截止</div>
-        <div v-else class="flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> 載入時間中...</div>
+        <div v-else class="flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> 系統連線中...</div>
     </div>
 
     <header class="bg-white shadow-sm border-b border-gray-200 sticky top-[40px] z-50 transition-all">
@@ -47,7 +49,7 @@
                 <img src="https://tjjh.tc.edu.tw/var/file/126/1126/msys_1126_7604592_06998.png" alt="校徽" class="h-12 w-auto mr-2 object-contain">
                 <div>
                     <h1 class="text-xl font-bold text-gray-800 tracking-wide">CampFlow</h1>
-                    <p class="text-xs text-gray-500">智慧營隊志願序報名系統 <span class="bg-purple-600 text-white px-1 rounded">v2.3 候補版</span></p>
+                    <p class="text-xs text-gray-500">智慧營隊志願序報名系統 <span class="bg-emerald-600 text-white px-1 rounded">v2.5.1 完整版</span></p>
                 </div>
             </div>
             <nav class="flex gap-2">
@@ -63,18 +65,17 @@
         
         <div v-if="isGlobalLoading" class="text-center py-24">
             <i class="fa-solid fa-circle-notch fa-spin text-5xl text-green-500 mb-4"></i>
-            <h2 class="text-xl font-bold text-gray-700">正在同步雲端設定...</h2>
-            <p class="text-gray-400 text-sm mt-2">Connecting to Google Sheets</p>
+            <h2 class="text-xl font-bold text-gray-700">正在同步雲端資料...</h2>
+            <p class="text-gray-400 text-sm mt-2">Reading Config from Google Sheets</p>
         </div>
 
         <transition name="fade" mode="out-in">
             <div v-if="!isGlobalLoading && currentView === 'student'" key="student" class="space-y-8">
+                
                 <section class="grid md:grid-cols-3 gap-6">
                     <div v-for="(camp, idx) in camps" :key="camp.id" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition group">
                         <div class="h-32 bg-gray-200 relative overflow-hidden">
-                            <div :class="['absolute inset-0 flex items-center justify-center text-4xl text-white opacity-80', getAutoColor(idx)]">
-                                <i :class="['fa-solid', getAutoIcon(idx)]"></i>
-                            </div>
+                            <div :class="['absolute inset-0 flex items-center justify-center text-4xl text-white opacity-80', getAutoColor(idx)]"><i :class="['fa-solid', getAutoIcon(idx)]"></i></div>
                             <div class="absolute top-2 right-2 bg-white/95 backdrop-blur px-2 py-1 rounded text-xs shadow">
                                 <span :class="camp.slots <= 0 ? 'text-gray-500 font-bold' : (camp.slots < 5 ? 'text-red-500 animate-pulse font-bold' : 'text-green-600 font-bold')">
                                     {{ camp.slots <= 0 ? '已額滿 (可排候補)' : '剩餘 ' + camp.slots + ' 名額' }}
@@ -84,10 +85,7 @@
                         <div class="p-5">
                             <h3 class="font-bold text-lg mb-1">{{ camp.name }}</h3>
                             <p class="text-gray-500 text-sm mb-3 h-10 overflow-hidden">{{ camp.desc }}</p>
-                            <div class="flex justify-between items-center text-xs text-gray-400">
-                                <span><i class="fa-regular fa-calendar mr-1"></i>{{ camp.date }}</span>
-                                <span><i class="fa-solid fa-user-group mr-1"></i>總額: {{ camp.totalSlots }}</span>
-                            </div>
+                            <div class="flex justify-between items-center text-xs text-gray-400"><span><i class="fa-regular fa-calendar mr-1"></i>{{ camp.date }}</span><span><i class="fa-solid fa-user-group mr-1"></i>總額: {{ camp.totalSlots }}</span></div>
                         </div>
                     </div>
                 </section>
@@ -102,7 +100,8 @@
                         <div class="grid md:grid-cols-2 gap-6">
                             <div><label class="block text-sm font-medium text-gray-700 mb-1">學生姓名 *</label><input v-model="form.studentName" type="text" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 outline-none"></div>
                             <div><label class="block text-sm font-medium text-gray-700 mb-1">家長姓名 *</label><input v-model="form.parentName" type="text" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 outline-none"></div>
-                            <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">家長聯絡電話 *</label><input v-model="form.phone" type="tel" maxlength="10" @input="validatePhone" :class="['w-full px-4 py-2 rounded-lg border outline-none', phoneError ? 'input-error' : 'border-gray-300 focus:ring-green-500']"><p v-if="phoneError" class="text-red-500 text-xs mt-1">{{ phoneError }}</p></div>
+                            <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">電子信箱 (接收錄取通知) *</label><input v-model="form.email" type="email" placeholder="example@email.com" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 outline-none"></div>
+                            <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">家長聯絡電話 *</label><input v-model="form.phone" type="tel" placeholder="09xxxxxxxx" maxlength="10" @input="validatePhone" :class="['w-full px-4 py-2 rounded-lg border outline-none', phoneError ? 'input-error' : 'border-gray-300 focus:ring-green-500']"><p v-if="phoneError" class="text-red-500 text-xs mt-1">{{ phoneError }}</p></div>
                         </div>
                         <hr class="border-gray-100">
                         <div class="space-y-4">
@@ -126,12 +125,7 @@
                         <div v-if="hasWaitlistChoice" class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
                             <div class="flex">
                                 <div class="flex-shrink-0"><i class="fa-solid fa-circle-exclamation text-yellow-400"></i></div>
-                                <div class="ml-3">
-                                    <p class="text-sm text-yellow-700">
-                                        您選擇的志願中包含 <strong>已額滿</strong> 的營隊。
-                                        <br>送出後，系統將自動將您列入該營隊的 <strong>候補名單</strong>。
-                                    </p>
-                                </div>
+                                <div class="ml-3"><p class="text-sm text-yellow-700">您選擇了已額滿的營隊，送出後將自動列入 <strong>候補名單</strong>。</p></div>
                             </div>
                         </div>
 
@@ -144,10 +138,23 @@
             </div>
 
             <div v-else-if="!isGlobalLoading && currentView === 'admin'" key="admin" class="space-y-8">
-                <div v-if="isAdminLoading" class="text-center py-20"><i class="fa-solid fa-circle-notch fa-spin text-4xl text-green-600"></i><p class="mt-2 text-gray-500">正在驗證身分並讀取資料...</p></div>
+                
+                <div v-if="showScanner" class="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center text-white">
+                    <h3 class="text-xl font-bold mb-4"><i class="fa-solid fa-qrcode mr-2"></i>QR Code 簽到</h3>
+                    <div id="reader" style="width: 300px; height: 300px; background: #000; border-radius: 10px; overflow: hidden;"></div>
+                    <p class="mt-6 text-sm text-gray-400">請將票券 QR Code 對準鏡頭</p>
+                    <button @click="closeScanner" class="mt-6 bg-gray-700 hover:bg-gray-600 px-8 py-3 rounded-full font-bold transition">關閉掃描器</button>
+                </div>
+
+                <div v-if="isAdminLoading" class="text-center py-20"><i class="fa-solid fa-circle-notch fa-spin text-4xl text-green-600"></i><p class="mt-2 text-gray-500">讀取中...</p></div>
                 <div v-else class="space-y-6">
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-chart-simple text-blue-500"></i> 各營隊招生進度</h3>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-gray-800"><i class="fa-solid fa-chart-simple text-blue-500 mr-2"></i> 各營隊招生進度</h3>
+                            <button @click="startScanner" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow transition flex items-center gap-2">
+                                <i class="fa-solid fa-camera"></i> 開啟掃碼簽到
+                            </button>
+                        </div>
                         <div class="grid md:grid-cols-2 gap-6">
                             <div v-for="camp in camps" :key="camp.id" class="space-y-1">
                                 <div class="flex justify-between text-sm"><span class="font-medium text-gray-700">{{ camp.name }}</span><span class="text-gray-500 text-xs">已報 {{ camp.used || 0 }} / 總 {{ camp.totalSlots }}</span></div>
@@ -159,18 +166,17 @@
                         <div class="p-4 border-b border-gray-100 bg-gray-50 flex flex-col md:flex-row md:justify-between md:items-center gap-3">
                             <div class="flex items-center gap-2"><h3 class="font-bold text-gray-800"><i class="fa-solid fa-users text-green-600 mr-1"></i> 學生報名清單</h3><span class="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{{ students.length }} 人</span></div>
                             <div class="flex gap-2">
-                                <input v-model="searchQuery" type="text" placeholder="搜尋學生..." class="px-3 py-1.5 text-sm border rounded-lg outline-none focus:border-green-500">
+                                <input v-model="searchQuery" type="text" placeholder="搜尋姓名、電話..." class="px-3 py-1.5 text-sm border rounded-lg outline-none focus:border-green-500">
                                 <button @click="exportCSV" class="bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 px-3 py-1.5 rounded-lg text-sm font-bold transition flex items-center gap-1"><i class="fa-solid fa-file-csv"></i> 匯出 CSV</button>
                             </div>
                         </div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-sm text-left text-gray-500">
-                                <thead class="bg-gray-100 text-gray-700 uppercase text-xs"><tr><th class="px-6 py-3 w-1/4">學生姓名</th><th class="px-6 py-3 w-1/4">家長 / 電話</th><th class="px-6 py-3">志願序 (優先 -> 候補)</th><th class="px-6 py-3 w-1/6">報名時間</th></tr></thead>
+                                <thead class="bg-gray-100 text-gray-700 uppercase text-xs"><tr><th class="px-6 py-3">姓名</th><th class="px-6 py-3">聯絡資訊</th><th class="px-6 py-3">志願序</th><th class="px-6 py-3">時間</th></tr></thead>
                                 <tbody>
-                                    <tr v-if="filteredStudents.length === 0"><td colspan="4" class="px-6 py-10 text-center text-gray-400"><i class="fa-regular fa-folder-open text-2xl mb-2"></i><br>尚無符合的資料</td></tr>
-                                    <tr v-for="(s, i) in filteredStudents" :key="i" class="border-b bg-white hover:bg-gray-50 transition">
+                                    <tr v-for="(s, i) in filteredStudents" :key="i" class="border-b bg-white hover:bg-gray-50">
                                         <td class="px-6 py-4"><div class="font-bold text-gray-900 text-base">{{ s.name }}</div><div class="text-xs text-gray-400">#{{ filteredStudents.length - i }}</div></td>
-                                        <td class="px-6 py-4"><div class="text-gray-900"><i class="fa-solid fa-user-tag text-gray-400 mr-1"></i>{{ s.parent }}</div><div class="text-blue-600 font-mono mt-1"><i class="fa-solid fa-phone text-gray-400 mr-1"></i>{{ s.phone }}</div></td>
+                                        <td class="px-6 py-4"><div class="text-gray-900 text-xs mb-1"><i class="fa-regular fa-envelope mr-1"></i>{{ s.email }}</div><div class="text-blue-600 font-mono"><i class="fa-solid fa-phone mr-1"></i>{{ s.phone }}</div></td>
                                         <td class="px-6 py-4"><div class="flex flex-wrap gap-2"><span v-for="(c, idx) in s.choices" :key="idx" :class="['px-2 py-1 rounded text-xs border', idx===0?'bg-green-50 border-green-200 text-green-700 font-bold':'bg-gray-50 border-gray-200 text-gray-600']">{{ idx+1 }}. {{ getCampName(c) }}</span></div></td>
                                         <td class="px-6 py-4 text-xs text-gray-500 font-mono">{{ formatGASDate(s.timestamp) }}</td>
                                     </tr>
@@ -188,8 +194,20 @@
         <div v-if="showSuccessModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
             <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
                 <div class="bg-green-600 p-4 text-white text-center"><h3 class="font-bold text-lg">報名成功！</h3></div>
-                <div class="p-6 text-center">
-                    <p class="mb-4">您的志願序已送出</p>
+                <div class="p-6">
+                    <div id="ticket-content" class="bg-white border-2 border-dashed border-gray-300 rounded-xl p-4 mb-6 ticket-visual relative">
+                        <div class="text-center mb-3"><img src="https://tjjh.tc.edu.tw/var/file/126/1126/msys_1126_7604592_06998.png" alt="校徽" class="h-16 mx-auto object-contain"></div>
+                        <div class="text-center mb-4"><h4 class="font-bold text-xl text-brand-600">ADMISSION TICKET</h4><p class="text-gray-400 text-xs">CampFlow Access</p></div>
+                        <div class="space-y-2 text-sm mb-4">
+                            <div class="flex justify-between border-b pb-1"><span class="text-gray-500">學生</span><span class="font-bold">{{ lastSubmittedStudent?.studentName }}</span></div>
+                            <div class="flex justify-between border-b pb-1"><span class="text-gray-500">第一志願</span><span class="font-bold text-green-600">{{ getCampName(lastSubmittedStudent?.choices[0]) }}</span></div>
+                        </div>
+                        <div class="text-center mt-4">
+                            <img :src="'https://quickchart.io/qr?text=' + lastSubmittedStudent?.phone + '&size=150'" class="mx-auto border p-1 rounded" alt="QR Code">
+                            <p class="text-[10px] text-gray-400 mt-1">ID: {{ lastSubmittedStudent?.phone }}</p>
+                        </div>
+                    </div>
+                    <button @click="generatePDF" class="w-full bg-gray-900 text-white font-bold py-3 rounded-lg mb-2"><i class="fa-solid fa-file-pdf"></i> 下載票券</button>
                     <button @click="showSuccessModal = false" class="w-full bg-gray-100 text-gray-600 font-bold py-3 rounded-lg">關閉</button>
                 </div>
             </div>
@@ -213,11 +231,13 @@
             const showSuccessModal = ref(false);
             const isSubmitting = ref(false);
             const isAdminLoading = ref(false);
+            const showScanner = ref(false);
             const phoneError = ref('');
             
             const camps = ref([]);
             const students = ref([]);
-            const form = reactive({ studentName: '', parentName: '', phone: '', choices: [''] });
+            const form = reactive({ studentName: '', parentName: '', phone: '', email: '', choices: [''] });
+            const adminPassword = ref('');
 
             const deadlineDate = ref(null);
             const timer = reactive({ days: 0, hours: 0, minutes: 0, seconds: 0 });
@@ -241,42 +261,77 @@
                         deadlineDate.value = data.deadline;
                         updateTimer();
                         timerInterval = setInterval(updateTimer, 1000);
-                    } else {
-                        alert('無法讀取設定，請確認 Google Sheet 的 Config 分頁');
-                    }
+                    } else alert('無法讀取設定');
                 })
-                .catch(e => { console.error(e); })
                 .finally(() => isGlobalLoading.value = false);
             };
 
-            const colors = ['bg-gradient-to-br from-indigo-500 to-purple-600', 'bg-gradient-to-br from-green-500 to-teal-600', 'bg-gradient-to-br from-blue-500 to-cyan-600', 'bg-gradient-to-br from-orange-400 to-red-500', 'bg-gradient-to-br from-pink-500 to-rose-500'];
-            const icons = ['fa-robot', 'fa-tree', 'fa-code', 'fa-utensils', 'fa-music'];
-            const getAutoColor = (i) => colors[i % colors.length];
-            const getAutoIcon = (i) => icons[i % icons.length];
-
             const validatePhone = () => { const r = /^09\d{8}$/; phoneError.value = (form.phone && !r.test(form.phone)) ? '格式錯誤' : ''; };
             watch(() => form.phone, validatePhone);
-            const isFormValid = computed(() => form.studentName && form.parentName && form.phone && !phoneError.value && form.choices[0]);
+            const isFormValid = computed(() => form.studentName && form.parentName && form.email && form.phone && !phoneError.value && form.choices[0]);
             
-            // [v2.3] 檢查是否選了候補
-            const hasWaitlistChoice = computed(() => {
-                return form.choices.some(choiceId => {
-                    const camp = camps.value.find(c => c.id === choiceId);
-                    return camp && camp.slots <= 0;
-                });
-            });
+            // Scanner Logic
+            let html5QrcodeScanner = null;
+            const startScanner = () => {
+                showScanner.value = true;
+                setTimeout(() => {
+                    html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+                    html5QrcodeScanner.render(onScanSuccess);
+                }, 100);
+            };
+            const closeScanner = () => {
+                if(html5QrcodeScanner) html5QrcodeScanner.clear();
+                showScanner.value = false;
+            };
+            const onScanSuccess = (decodedText) => {
+                // 停止掃描避免重複觸發
+                html5QrcodeScanner.pause();
+                
+                // 讓老師選擇要簽到的營隊 (或自動帶入)
+                // 這裡我們簡單化，直接跳 prompt 讓老師確認
+                if(confirm(`掃描成功！\n學生電話 ID: ${decodedText}\n確定要進行簽到嗎？`)) {
+                    const campName = prompt("請輸入該學生所在的營隊名稱以確認簽到：\n(例如：AI 機器人創客營)");
+                    if(campName) {
+                        fetch(CONFIG.scriptUrl, {
+                            method: 'POST',
+                            body: JSON.stringify({ action: 'checkin', password: adminPassword.value, studentId: decodedText, campName: campName })
+                        })
+                        .then(res => res.json())
+                        .then(d => {
+                            alert(d.message);
+                            html5QrcodeScanner.resume(); // 恢復掃描下一位
+                        })
+                        .catch(e => {
+                            alert("連線錯誤");
+                            html5QrcodeScanner.resume();
+                        });
+                    } else {
+                        html5QrcodeScanner.resume();
+                    }
+                } else {
+                    html5QrcodeScanner.resume();
+                }
+            };
 
+            const colors = ['bg-gradient-to-br from-indigo-500 to-purple-600', 'bg-gradient-to-br from-green-500 to-teal-600', 'bg-gradient-to-br from-blue-500 to-cyan-600', 'bg-gradient-to-br from-orange-400 to-red-500'];
+            const icons = ['fa-robot', 'fa-tree', 'fa-code', 'fa-utensils'];
+            const getAutoColor = (i) => colors[i % colors.length];
+            const getAutoIcon = (i) => icons[i % icons.length];
             const addChoice = () => { if(form.choices.length < camps.value.length) form.choices.push(''); };
             const removeChoice = (idx) => form.choices.splice(idx, 1);
             const isSelected = (id, idx) => form.choices.some((c, i) => i !== idx && c === id);
             const getCampName = (id) => { const c = camps.value.find(x => x.id === id); return c ? c.name : id; };
             const formatGASDate = (d) => { try { return new Date(d).toLocaleString(); } catch(e) { return d; } };
+            const hasWaitlistChoice = computed(() => form.choices.some(id => { const c = camps.value.find(x=>x.id===id); return c && c.slots<=0; }));
+            const filteredStudents = computed(() => students.value.filter(s => s.name.includes(searchQuery.value) || s.email.includes(searchQuery.value) || String(s.phone).includes(searchQuery.value)));
+            const searchQuery = ref('');
+            const lastSubmittedStudent = ref(null);
 
             const submitRegistration = () => {
                 isSubmitting.value = true;
-                const payload = { action: 'register', studentName: form.studentName, parentName: form.parentName, phone: form.phone, choices: form.choices };
+                const payload = { action: 'register', studentName: form.studentName, parentName: form.parentName, email: form.email, phone: form.phone, choices: form.choices };
                 fetch(CONFIG.scriptUrl, { method: 'POST', body: JSON.stringify(payload), mode: 'no-cors', headers: { 'Content-Type': 'text/plain' } })
-                .then(() => { form.studentName=''; form.parentName=''; form.phone=''; form.choices=['']; showSuccessModal.value = true; })
+                .then(() => { lastSubmittedStudent.value = payload; form.studentName=''; form.parentName=''; form.email=''; form.phone=''; form.choices=['']; showSuccessModal.value = true; })
                 .finally(() => isSubmitting.value = false);
             };
 
@@ -284,25 +339,27 @@
                 if(currentView.value === 'admin') { currentView.value = 'student'; students.value = []; return; }
                 const pwd = prompt("請輸入管理員密碼：");
                 if(pwd) {
+                    adminPassword.value = pwd; 
                     isAdminLoading.value = true; currentView.value = 'admin';
                     fetch(CONFIG.scriptUrl, { method: 'POST', body: JSON.stringify({ action: 'login', password: pwd }) })
-                    .then(res => res.json()).then(d => { 
-                        if(d.result==='success') students.value=d.data; 
-                        else { alert('密碼錯誤'); currentView.value='student'; } 
-                    })
+                    .then(res => res.json()).then(d => { if(d.result==='success') students.value=d.data; else { alert('密碼錯誤'); currentView.value='student'; } })
                     .finally(() => isAdminLoading.value = false);
                 }
             };
-            
-            const filteredStudents = computed(() => students.value.filter(s => 
-                s.name.includes(searchQuery.value) || s.parent.includes(searchQuery.value) || String(s.phone).includes(searchQuery.value)
-            ));
-            const searchQuery = ref('');
+
+            const generatePDF = () => {
+                html2canvas(document.getElementById('ticket-content'), { scale: 2, useCORS: true }).then(canvas => {
+                    const img = canvas.toDataURL('image/png');
+                    const pdf = new window.jspdf.jsPDF({ orientation: 'p', unit: 'mm', format: 'a5' });
+                    pdf.addImage(img, 'PNG', 0, 10, pdf.internal.pageSize.getWidth(), (canvas.height * pdf.internal.pageSize.getWidth()) / canvas.width);
+                    pdf.save(`Ticket_${lastSubmittedStudent.value.studentName}.pdf`);
+                });
+            };
 
             const exportCSV = () => {
-                let csv = "\uFEFF學生,家長,電話,志願\n";
-                students.value.forEach(s => csv += `${s.name},${s.parent},${s.phone},${s.choices.map(c=>getCampName(c)).join('->')}\n`);
-                const a = document.createElement("a"); a.href = encodeURI("data:text/csv;charset=utf-8," + csv); a.download = "camp_students.csv"; a.click();
+                let csv = "\uFEFF學生,Email,電話,志願\n";
+                students.value.forEach(s => csv += `${s.name},${s.email},${s.phone},${s.choices.map(c=>getCampName(c)).join('->')}\n`);
+                const a = document.createElement("a"); a.href = encodeURI("data:text/csv;charset=utf-8," + csv); a.download = "data.csv"; a.click();
             };
 
             onMounted(() => { fetchCamps(); });
@@ -310,9 +367,9 @@
 
             return {
                 currentView, isGlobalLoading, camps, form, students, showSuccessModal, isSubmitting, isAdminLoading, phoneError,
-                timer, isExpired, isFormValid, getAutoColor, getAutoIcon, filteredStudents, searchQuery, deadlineDate,
+                timer, isExpired, isFormValid, getAutoColor, getAutoIcon, filteredStudents, searchQuery, deadlineDate, hasWaitlistChoice, showScanner,
                 addChoice, removeChoice, isSelected, submitRegistration, checkAdminAccess, switchToStudent: ()=>currentView.value='student',
-                getCampName, exportCSV, formatGASDate, hasWaitlistChoice
+                getCampName, exportCSV, formatGASDate, generatePDF, lastSubmittedStudent, startScanner, closeScanner
             };
         }
     }).mount('#app');
