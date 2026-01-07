@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CampFlow 營隊報名系統 v4.3.1 (精簡選單版)</title>
+    <title>CampFlow 營隊報名系統 v4.3.2 (醒目倒數版)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -37,13 +37,12 @@
         .custom-scroll::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
         .custom-scroll::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
 
-        /* 手機版選單動畫 */
         .mobile-menu-enter-active, .mobile-menu-leave-active { transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out; }
         .mobile-menu-enter-from, .mobile-menu-leave-to { max-height: 0; opacity: 0; }
         .mobile-menu-enter-to, .mobile-menu-leave-from { max-height: 300px; opacity: 1; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 pt-[60px]">
+<body class="bg-gray-50 text-gray-800 pt-[100px]">
 
 <div id="app" class="min-h-screen flex flex-col">
 
@@ -51,24 +50,30 @@
         System made by lunary
     </div>
 
-    <div :class="['fixed top-0 left-0 w-full h-[30px] text-white z-[70] flex items-center justify-center text-xs font-bold shadow-sm transition-colors duration-500', isCheckinMode ? 'bg-indigo-600' : 'bg-gray-800']">
+    <div :class="['fixed top-0 left-0 w-full h-[40px] text-white z-[70] flex items-center justify-center text-sm font-bold shadow-md transition-colors duration-500', isCheckinMode ? 'bg-indigo-600' : 'bg-gradient-to-r from-red-600 to-orange-500']">
         <div v-if="isCheckinMode" class="flex items-center animate-fade-in">
             <i class="fa-solid fa-location-dot mr-2 animate-bounce"></i> 自助簽到模式
         </div>
         <div v-else class="flex items-center">
             <div v-if="!isExpired && deadlineDate" class="flex items-center gap-3">
-                <span class="tracking-wide opacity-90"><i class="fa-solid fa-hourglass-half mr-1 text-yellow-400"></i>報名截止倒數</span>
-                <div class="flex items-center gap-1 font-mono">
-                    <span v-if="timer.days > 0" class="text-yellow-300">{{ timer.days }}天</span>
+                <div class="flex items-center gap-2">
+                    <span class="relative flex h-3 w-3">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+                    </span>
+                    <span class="tracking-wide opacity-95 text-shadow">報名截止倒數</span>
+                </div>
+                <div class="flex items-center gap-1 font-mono text-base bg-black/10 px-2 rounded">
+                    <span v-if="timer.days > 0" class="text-yellow-200">{{ timer.days }}天</span>
                     <span>{{ pad(timer.hours) }}:{{ pad(timer.minutes) }}:{{ pad(timer.seconds) }}</span>
                 </div>
             </div>
-            <div v-else-if="isExpired" class="flex items-center gap-2"><i class="fa-solid fa-lock text-yellow-400"></i> 報名已截止</div>
+            <div v-else-if="isExpired" class="flex items-center gap-2 bg-black/20 px-3 py-0.5 rounded-full"><i class="fa-solid fa-lock text-yellow-300"></i> 報名已截止</div>
             <div v-else class="flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> 資料同步中...</div>
         </div>
     </div>
 
-    <header class="bg-white shadow-md border-b border-gray-200 fixed top-[30px] w-full z-50 transition-all">
+    <header class="bg-white shadow-md border-b border-gray-200 fixed top-[40px] w-full z-50 transition-all">
         <div class="max-w-6xl mx-auto px-4">
             <div class="flex justify-between items-center h-[60px]">
                 <div class="flex items-center gap-3 cursor-pointer" @click="goHome">
@@ -85,13 +90,10 @@
                     <button @click="currentView='student'; isMenuOpen=false" :class="['px-4 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2', currentView === 'student' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700']">
                         <i class="fa-solid fa-house"></i> 首頁
                     </button>
-                    
                     <a v-if="systemConfig.school_link" :href="systemConfig.school_link" target="_blank" class="px-4 py-2 rounded-lg text-sm font-bold text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition flex items-center gap-2">
                         <i class="fa-solid fa-school"></i> 校方公告
                     </a>
-                    
                     <div class="w-px h-6 bg-gray-200 mx-2 self-center"></div>
-
                     <button @click="checkAdminAccess" :class="['px-4 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2', currentView === 'admin' ? 'bg-gray-800 text-white shadow-lg transform scale-105' : 'text-gray-500 hover:bg-gray-100']">
                         <i :class="currentView === 'admin' ? 'fa-solid fa-right-from-bracket' : 'fa-solid fa-user-gear'"></i> {{ currentView === 'admin' ? '登出後台' : '管理登入' }}
                     </button>
@@ -109,13 +111,10 @@
                     <button @click="currentView='student'; isMenuOpen=false" class="w-full text-left px-4 py-3 rounded-lg bg-indigo-50 text-indigo-700 font-bold flex items-center gap-3">
                         <i class="fa-solid fa-house"></i> 營隊報名首頁
                     </button>
-                    
                     <a v-if="systemConfig.school_link" :href="systemConfig.school_link" target="_blank" class="block w-full text-left px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 font-bold flex items-center gap-3">
                         <i class="fa-solid fa-school"></i> 學校官網公告
                     </a>
-                    
                     <div class="border-t border-gray-100 my-2"></div>
-                    
                     <button @click="checkAdminAccess(); isMenuOpen=false" class="w-full text-left px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 font-bold flex items-center gap-3">
                         <i :class="currentView === 'admin' ? 'fa-solid fa-right-from-bracket' : 'fa-solid fa-user-gear'"></i> {{ currentView === 'admin' ? '登出管理後台' : '工作人員登入' }}
                     </button>
@@ -361,6 +360,9 @@
 <script>
     const { createApp, ref, computed, onMounted, reactive, watch, onUnmounted, nextTick } = Vue;
 
+    // ==========================================
+    // ★★★ CONFIGURATION 設定區 ★★★
+    // ==========================================
     const CONFIG = {
         // ★★★ 請確認您的 GAS 網址是否正確 ★★★
         scriptUrl: 'https://script.google.com/macros/s/AKfycbxwOpyYxExvKiCiOsOSFmyNDH_aDgLgqQ_B8zbhfogu4S5osm_QovqvpDFNnPWY8NQ_/exec',
