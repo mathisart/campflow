@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CampFlow 營隊報名系統 v4.2.0 (永續選單版)</title>
+    <title>CampFlow 營隊報名系統 v4.3.1 (精簡選單版)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -43,7 +43,9 @@
         .mobile-menu-enter-to, .mobile-menu-leave-from { max-height: 300px; opacity: 1; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 pt-[60px]"> <div id="app" class="min-h-screen flex flex-col">
+<body class="bg-gray-50 text-gray-800 pt-[60px]">
+
+<div id="app" class="min-h-screen flex flex-col">
 
     <div class="fixed bottom-2 right-3 z-50 text-[10px] text-gray-400 font-mono select-none hover:text-gray-600 transition-colors duration-300 cursor-default">
         System made by lunary
@@ -88,10 +90,6 @@
                         <i class="fa-solid fa-school"></i> 校方公告
                     </a>
                     
-                    <a v-if="systemConfig.inquiry_link" :href="systemConfig.inquiry_link" target="_blank" class="px-4 py-2 rounded-lg text-sm font-bold text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition flex items-center gap-2">
-                        <i class="fa-solid fa-list-ol"></i> 錄取查詢
-                    </a>
-
                     <div class="w-px h-6 bg-gray-200 mx-2 self-center"></div>
 
                     <button @click="checkAdminAccess" :class="['px-4 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2', currentView === 'admin' ? 'bg-gray-800 text-white shadow-lg transform scale-105' : 'text-gray-500 hover:bg-gray-100']">
@@ -114,10 +112,6 @@
                     
                     <a v-if="systemConfig.school_link" :href="systemConfig.school_link" target="_blank" class="block w-full text-left px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 font-bold flex items-center gap-3">
                         <i class="fa-solid fa-school"></i> 學校官網公告
-                    </a>
-                    
-                    <a v-if="systemConfig.inquiry_link" :href="systemConfig.inquiry_link" target="_blank" class="block w-full text-left px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 font-bold flex items-center gap-3">
-                        <i class="fa-solid fa-list-ol"></i> 錄取名單查詢
                     </a>
                     
                     <div class="border-t border-gray-100 my-2"></div>
@@ -384,8 +378,8 @@
             const phoneError = ref('');
             
             // UI State
-            const isMenuOpen = ref(false); // 控制手機選單開關
-            const systemConfig = ref({});  // 存放從後端抓來的標題、連結等
+            const isMenuOpen = ref(false); 
+            const systemConfig = ref({});  
             
             // Check-in Mode State
             const isCheckinMode = ref(false);
@@ -429,10 +423,8 @@
                     if(data.result === 'success') {
                         camps.value = data.camps;
                         deadlineDate.value = data.deadline;
-                        // ★★★ 讀取後端設定 (標題、學期標籤、外部連結) ★★★
                         systemConfig.value = data.config || {};
                         document.title = data.config.system_title || 'CampFlow 營隊報名系統';
-                        
                         updateTimer();
                         if(!timerInterval) timerInterval = setInterval(updateTimer, 1000);
                     } else alert('無法讀取設定，請檢查後端網址');
