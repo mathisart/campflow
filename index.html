@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CampFlow 營隊報名系統 v4.4.0 (經典數位時鐘版)</title>
+    <title>CampFlow 營隊報名系統 v4.5.0 (內建說明書版)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -61,9 +61,8 @@
                       <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
                       <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
                     </span>
-                    <span class="tracking-wide text-xs opacity-90 hidden sm:inline">報名截止</span>
+                    <span class="tracking-wide text-xs opacity-90 hidden sm:inline">報名截止倒數</span>
                 </div>
-                
                 <div class="flex items-center gap-1 font-mono text-base">
                     <template v-if="timer.days > 0">
                         <span class="bg-black/20 backdrop-blur px-1.5 py-0.5 rounded text-white min-w-[24px] text-center border border-white/10 shadow-sm">{{ timer.days }}</span>
@@ -75,7 +74,7 @@
                     <span class="text-xs opacity-60 font-normal">:</span>
                     <span class="bg-black/20 backdrop-blur px-1.5 py-0.5 rounded text-yellow-300 min-w-[28px] text-center border border-white/10 shadow-sm">{{ pad(timer.seconds) }}</span>
                 </div>
-                </div>
+            </div>
             <div v-else-if="isExpired" class="flex items-center gap-2 bg-black/20 px-3 py-1 rounded-full"><i class="fa-solid fa-lock text-yellow-400"></i> 報名已截止</div>
             <div v-else class="flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> 資料同步中...</div>
         </div>
@@ -101,6 +100,11 @@
                     <a v-if="systemConfig.school_link" :href="systemConfig.school_link" target="_blank" class="px-4 py-2 rounded-lg text-sm font-bold text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition flex items-center gap-2">
                         <i class="fa-solid fa-school"></i> 校方公告
                     </a>
+                    
+                    <button @click="currentView='about'; isMenuOpen=false" :class="['px-4 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2', currentView === 'about' ? 'bg-teal-50 text-teal-700' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700']">
+                        <i class="fa-solid fa-book-open"></i> 系統說明
+                    </button>
+
                     <div class="w-px h-6 bg-gray-200 mx-2 self-center"></div>
                     <button @click="checkAdminAccess" :class="['px-4 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2', currentView === 'admin' ? 'bg-gray-800 text-white shadow-lg transform scale-105' : 'text-gray-500 hover:bg-gray-100']">
                         <i :class="currentView === 'admin' ? 'fa-solid fa-right-from-bracket' : 'fa-solid fa-user-gear'"></i> {{ currentView === 'admin' ? '登出後台' : '管理登入' }}
@@ -122,6 +126,9 @@
                     <a v-if="systemConfig.school_link" :href="systemConfig.school_link" target="_blank" class="block w-full text-left px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 font-bold flex items-center gap-3">
                         <i class="fa-solid fa-school"></i> 學校官網公告
                     </a>
+                    <button @click="currentView='about'; isMenuOpen=false" class="w-full text-left px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 font-bold flex items-center gap-3">
+                        <i class="fa-solid fa-book-open"></i> 系統使用說明
+                    </button>
                     <div class="border-t border-gray-100 my-2"></div>
                     <button @click="checkAdminAccess(); isMenuOpen=false" class="w-full text-left px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 font-bold flex items-center gap-3">
                         <i :class="currentView === 'admin' ? 'fa-solid fa-right-from-bracket' : 'fa-solid fa-user-gear'"></i> {{ currentView === 'admin' ? '登出管理後台' : '工作人員登入' }}
@@ -139,7 +146,111 @@
         </div>
 
         <transition name="fade" mode="out-in">
-            <div v-if="!isGlobalLoading && isCheckinMode" key="checkin" class="max-w-md mx-auto mt-10">
+            <div v-if="!isGlobalLoading && currentView === 'about'" key="about" class="space-y-8 animate-fade-in">
+                
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800">系統使用指南</h2>
+                    <p class="text-gray-500 mt-2">CampFlow 操作手冊與重要觀念說明</p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-star text-yellow-400"></i> 核心觀念：數據的差異</h3>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="bg-blue-50 p-6 rounded-lg border border-blue-100">
+                            <h4 class="font-bold text-blue-800 mb-2"><i class="fa-solid fa-chart-pie mr-2"></i>營運概況 (即時數據)</h4>
+                            <p class="text-sm text-blue-600 leading-relaxed">
+                                這是您在管理後台看到的數據。<br>
+                                它代表：<strong>「目前有多少學生將此營隊填為第一志願」</strong>。<br><br>
+                                <span class="bg-blue-200 px-1 rounded">用途</span> 用來即時監控報名熱度。如果看到數字超過名額上限，表示該營隊已爆滿。
+                            </p>
+                        </div>
+                        <div class="bg-green-50 p-6 rounded-lg border border-green-100">
+                            <h4 class="font-bold text-green-800 mb-2"><i class="fa-solid fa-check-to-slot mr-2"></i>分發結果 (最終定案)</h4>
+                            <p class="text-sm text-green-600 leading-relaxed">
+                                這是按下「開始自動分發」後產生的結果。<br>
+                                它代表：<strong>「經過篩選後，實際錄取名單」</strong>。<br><br>
+                                <span class="bg-green-200 px-1 rounded">用途</span> 系統會根據報名順序、志願序、名額限制，自動計算誰是正取、誰是候補。這才是公告給家長的最終版本。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-toggle-on text-indigo-500"></i> 後台功能說明</h3>
+                    <div class="space-y-4">
+                        <div class="flex flex-col md:flex-row gap-4 border-b border-gray-100 pb-4">
+                            <div class="w-48 shrink-0 font-bold text-gray-700 bg-gray-100 px-3 py-1 rounded self-start text-center">🚀 開始自動分發</div>
+                            <div class="text-sm text-gray-600">
+                                <p class="font-bold text-gray-800 mb-1">使用時機：報名截止後</p>
+                                <p>系統的大腦。按下後會計算所有報名資料，生成最終錄取名單 (Final_List)。請務必在報名結束後按一次。</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col md:flex-row gap-4 border-b border-gray-100 pb-4">
+                            <div class="w-48 shrink-0 font-bold text-gray-700 bg-gray-100 px-3 py-1 rounded self-start text-center">📧 寄發錄取通知</div>
+                            <div class="text-sm text-gray-600">
+                                <p class="font-bold text-gray-800 mb-1">使用時機：分發完成後</p>
+                                <p>機器人寄信。會自動寄 Email 給所有「正取」且「尚未收到信」的學生。系統有防呆機制，不會重複寄信。</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col md:flex-row gap-4 border-b border-gray-100 pb-4">
+                            <div class="w-48 shrink-0 font-bold text-gray-700 bg-gray-100 px-3 py-1 rounded self-start text-center">🔄 更新簽到表</div>
+                            <div class="text-sm text-gray-600">
+                                <p class="font-bold text-gray-800 mb-1">使用時機：名單有人工異動時</p>
+                                <p>如果您手動修改了錄取名單（例如有人退費），按此按鈕可更新各營隊的分頁名單，以利列印紙本。</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col md:flex-row gap-4">
+                            <div class="w-48 shrink-0 font-bold text-red-600 bg-red-50 border border-red-100 px-3 py-1 rounded self-start text-center">⚠️ 清空資料</div>
+                            <div class="text-sm text-gray-600">
+                                <p class="font-bold text-red-600 mb-1">使用時機：換學期 / 新一季開始前</p>
+                                <p>一鍵重置。會刪除所有舊生的報名紀錄與名單，讓系統回到初始狀態，準備迎接下一屆學生。<strong>請小心使用！</strong></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-regular fa-circle-question text-teal-500"></i> 常見問題 (FAQ)</h3>
+                    <div class="space-y-4">
+                        <details class="group bg-gray-50 rounded-lg p-4 cursor-pointer">
+                            <summary class="font-bold text-gray-700 flex justify-between items-center list-none">
+                                Q: 如何更換學期名稱 (例如從寒假變暑假)？
+                                <span class="transition group-open:rotate-180"><i class="fa-solid fa-chevron-down text-gray-400"></i></span>
+                            </summary>
+                            <p class="text-sm text-gray-600 mt-2 pl-4 border-l-2 border-teal-500">
+                                請至 Google Sheet 的 <strong>「Config」</strong> 分頁，直接修改 <code>system_title</code> (大標題) 與 <code>semester_tag</code> (英文標籤) 的內容即可。網頁重新整理後會自動更新。
+                            </p>
+                        </details>
+                        <details class="group bg-gray-50 rounded-lg p-4 cursor-pointer">
+                            <summary class="font-bold text-gray-700 flex justify-between items-center list-none">
+                                Q: 學生填錯資料怎麼辦？
+                                <span class="transition group-open:rotate-180"><i class="fa-solid fa-chevron-down text-gray-400"></i></span>
+                            </summary>
+                            <p class="text-sm text-gray-600 mt-2 pl-4 border-l-2 border-teal-500">
+                                請管理員登入後台 (Google Sheet)，直接在 <strong>「Registrations」</strong> 分頁找到該學生，手動修改他的資料即可。若要取消報名，直接刪除該列資料。
+                            </p>
+                        </details>
+                        <details class="group bg-gray-50 rounded-lg p-4 cursor-pointer">
+                            <summary class="font-bold text-gray-700 flex justify-between items-center list-none">
+                                Q: 如何新增或關閉某個營隊？
+                                <span class="transition group-open:rotate-180"><i class="fa-solid fa-chevron-down text-gray-400"></i></span>
+                            </summary>
+                            <p class="text-sm text-gray-600 mt-2 pl-4 border-l-2 border-teal-500">
+                                請至 <strong>「Settings」</strong> 分頁。若要關閉，將 <code>Enabled</code> 欄位取消勾選 (False)；若要新增，直接在下方新增一列並填入資訊即可。
+                            </p>
+                        </details>
+                    </div>
+                </div>
+
+                <div class="text-center pb-8">
+                    <button @click="currentView='student'" class="bg-gray-800 text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-gray-900 transition transform hover:scale-105">
+                        <i class="fa-solid fa-check mr-2"></i> 我瞭解了，開始使用
+                    </button>
+                </div>
+
+            </div>
+
+            <div v-else-if="!isGlobalLoading && isCheckinMode" key="checkin" class="max-w-md mx-auto mt-10">
                 <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-indigo-100">
                     <div class="bg-indigo-600 p-6 text-white text-center">
                         <i class="fa-solid fa-location-dot text-4xl mb-3"></i>
