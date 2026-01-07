@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CampFlow 營隊報名系統 v4.3.2 (醒目倒數版)</title>
+    <title>CampFlow 營隊報名系統 v4.4.0 (經典數位時鐘版)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -50,25 +50,33 @@
         System made by lunary
     </div>
 
-    <div :class="['fixed top-0 left-0 w-full h-[40px] text-white z-[70] flex items-center justify-center text-sm font-bold shadow-md transition-colors duration-500', isCheckinMode ? 'bg-indigo-600' : 'bg-gradient-to-r from-red-600 to-orange-500']">
+    <div :class="['fixed top-0 left-0 w-full h-[40px] text-white z-[70] flex items-center justify-center text-sm font-bold shadow-md transition-colors duration-500', isCheckinMode ? 'bg-indigo-600' : 'bg-gradient-to-r from-red-600 to-red-500']">
         <div v-if="isCheckinMode" class="flex items-center animate-fade-in">
             <i class="fa-solid fa-location-dot mr-2 animate-bounce"></i> 自助簽到模式
         </div>
         <div v-else class="flex items-center">
             <div v-if="!isExpired && deadlineDate" class="flex items-center gap-3">
-                <div class="flex items-center gap-2">
-                    <span class="relative flex h-3 w-3">
+                <div class="flex items-center gap-2 mr-2">
+                    <span class="relative flex h-2.5 w-2.5">
                       <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
                     </span>
-                    <span class="tracking-wide opacity-95 text-shadow">報名截止倒數</span>
+                    <span class="tracking-wide text-xs opacity-90 hidden sm:inline">報名截止</span>
                 </div>
-                <div class="flex items-center gap-1 font-mono text-base bg-black/10 px-2 rounded">
-                    <span v-if="timer.days > 0" class="text-yellow-200">{{ timer.days }}天</span>
-                    <span>{{ pad(timer.hours) }}:{{ pad(timer.minutes) }}:{{ pad(timer.seconds) }}</span>
+                
+                <div class="flex items-center gap-1 font-mono text-base">
+                    <template v-if="timer.days > 0">
+                        <span class="bg-black/20 backdrop-blur px-1.5 py-0.5 rounded text-white min-w-[24px] text-center border border-white/10 shadow-sm">{{ timer.days }}</span>
+                        <span class="text-xs mr-1 opacity-80 font-normal">天</span>
+                    </template>
+                    <span class="bg-black/20 backdrop-blur px-1.5 py-0.5 rounded text-white min-w-[28px] text-center border border-white/10 shadow-sm">{{ pad(timer.hours) }}</span>
+                    <span class="text-xs opacity-60 font-normal">:</span>
+                    <span class="bg-black/20 backdrop-blur px-1.5 py-0.5 rounded text-white min-w-[28px] text-center border border-white/10 shadow-sm">{{ pad(timer.minutes) }}</span>
+                    <span class="text-xs opacity-60 font-normal">:</span>
+                    <span class="bg-black/20 backdrop-blur px-1.5 py-0.5 rounded text-yellow-300 min-w-[28px] text-center border border-white/10 shadow-sm">{{ pad(timer.seconds) }}</span>
                 </div>
-            </div>
-            <div v-else-if="isExpired" class="flex items-center gap-2 bg-black/20 px-3 py-0.5 rounded-full"><i class="fa-solid fa-lock text-yellow-300"></i> 報名已截止</div>
+                </div>
+            <div v-else-if="isExpired" class="flex items-center gap-2 bg-black/20 px-3 py-1 rounded-full"><i class="fa-solid fa-lock text-yellow-400"></i> 報名已截止</div>
             <div v-else class="flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> 資料同步中...</div>
         </div>
     </div>
